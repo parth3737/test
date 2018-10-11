@@ -1,0 +1,400 @@
+*&---------------------------------------------------------------------*
+*& Report ZSCN_XLSX_WRITER_DEMO_BASIC
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zscn_xlsx_writer_demo_basic.
+CONSTANTS:
+  color_column TYPE lvc_fname VALUE 'ALV_COLOR_COL'.
+
+* for excel color codes, use http://closedxml.codeplex.com/wikipage?title=Excel%20Indexed%20Colors
+
+DATA:
+  dbtable           TYPE REF TO data,
+  dbtable_line      TYPE REF TO data,
+  xlsx_writer       TYPE REF TO zscn_cl_xlsx_writer,
+  number_of_records TYPE i,
+  start_time        TYPE syuzeit,
+  end_time          TYPE syuzeit,
+  duration          TYPE i,
+  struc_descr       TYPE REF TO cl_abap_structdescr,
+  components        TYPE cl_abap_structdescr=>component_table,
+  component         TYPE cl_abap_structdescr=>component,
+  table_descr       TYPE REF TO cl_abap_tabledescr,
+  new_struc         TYPE REF TO data,
+  new_table         TYPE REF TO data,
+  alv_color         TYPE lvc_s_scol,
+  alv_colors        TYPE lvc_t_scol.
+
+FIELD-SYMBOLS:
+  <dbtable>      TYPE STANDARD TABLE,
+  <dbtable_line> TYPE any,
+  <new_struc>    TYPE any,
+  <new_table>    TYPE STANDARD TABLE,
+  <color_column> TYPE any.
+PARAMETERS:
+  pdbtab       TYPE tabname16 DEFAULT 'SFLIGHT',    "DB table to select from
+  pmaxrw       TYPE sy-tabix DEFAULT 500,           "Max number of rows
+  pshow        AS CHECKBOX,                         "show alv
+  pclntfn(255) LOWER CASE,                          "Filename on client
+  plexcel      AS CHECKBOX DEFAULT 'X',             "Launch Excel after downloading
+  psrvfn(255)  LOWER CASE,                          "Filename on server
+  p_bgreen     AS CHECKBOX,                         "green background for header
+  p_rotate     TYPE i,                              "rotate content
+  p_border     AS CHECKBOX,                         "adds a border to the header
+  p_font       AS CHECKBOX,                         "changes the fontID
+  p_stylex     AS CHECKBOX,                         "diffeent style for the column MANDT
+  p_hheigh     TYPE i,                              "header height
+  p_color      AS CHECKBOX.                         "color some cells and rows
+
+
+
+AT SELECTION-SCREEN  ON VALUE-REQUEST FOR pclntfn.
+  zscn_cl_xlsx_writer=>browse_client_fs( CHANGING p_filename = pclntfn  ).
+
+AT SELECTION-SCREEN  ON VALUE-REQUEST FOR psrvfn.
+  zscn_cl_xlsx_writer=>browse_server_fs( CHANGING p_filename = psrvfn  ).
+
+START-OF-SELECTION.
+
+* Authorization check
+  AUTHORITY-CHECK OBJECT 'S_TABU_DIS'
+           ID 'DICBERCLS' FIELD pdbtab
+           ID 'ACTVT' FIELD '03'.
+  IF sy-subrc NE 0.
+    MESSAGE e034(zz9xa_distr) WITH pdbtab.
+*   You are not authorized to display table &1. Program ends.
+  ENDIF.
+
+* now validate the input (prevent SQL injections)
+  TRY.
+      cl_abap_dyn_prg=>check_table_name_str(
+          val               = to_upper( pdbtab )
+          packages          = ''  ).
+    CATCH cx_abap_not_a_table .
+      MESSAGE e035(zz9xa_distr) WITH pdbtab.
+*   Invalid entry, &1 is not a DB table. Program ends.
+    CATCH cx_abap_not_in_package. " not intrested
+  ENDTRY.
+
+  CREATE DATA dbtable TYPE TABLE OF (pdbtab).
+  ASSIGN dbtable->* TO <dbtable>.
+
+  SELECT * FROM (pdbtab) INTO TABLE <dbtable> UP TO pmaxrw ROWS.
+  DESCRIBE TABLE <dbtable> LINES number_of_records.
+
+
+  GET TIME.
+  start_time = sy-uzeit.
+
+  IF p_color EQ abap_true.
+
+    CREATE DATA dbtable_line TYPE  (pdbtab).
+    struc_descr ?= cl_abap_structdescr=>describe_by_data_ref( dbtable_line ).
+    components = struc_descr->get_components( ).
+
+* Add the component for the Color codeing column
+    CLEAR component.
+    component-name = color_column.
+    component-type ?= cl_abap_tabledescr=>describe_by_name( 'LVC_T_SCOL').
+
+    APPEND component TO components.
+
+    CLEAR struc_descr.
+    struc_descr = cl_abap_structdescr=>create( p_components = components ).
+    CREATE DATA new_struc TYPE HANDLE struc_descr.
+    ASSIGN new_struc->* TO <new_struc>.
+    table_descr  = cl_abap_tabledescr=>create( p_line_type  = struc_descr ).
+    CREATE DATA new_table TYPE HANDLE table_descr.
+    ASSIGN new_table->* TO <new_table>.
+
+
+    LOOP AT <dbtable> ASSIGNING <dbtable_line> .
+      CLEAR: <new_struc>, alv_colors, alv_color.
+      MOVE-CORRESPONDING <dbtable_line> TO <new_struc>.
+*    coloring
+      CASE sy-tabix.
+        WHEN 1.
+*        color the first row red
+          alv_color-color-col = col_negative .
+          alv_color-color-int = 0.
+          alv_color-color-inv = 0.
+          APPEND alv_color TO alv_colors.
+
+        WHEN 2.
+*        second line, color first column green.
+          READ TABLE components INTO component INDEX 1.
+          alv_color-fname = component-name.
+          alv_color-color-col = col_positive .
+          alv_color-color-int = 0.
+          alv_color-color-inv = 0.
+          APPEND alv_color TO alv_colors.
+
+        WHEN 3.
+*        second line, color first column green.
+          READ TABLE components INTO component INDEX 1.
+          alv_color-fname = component-name.
+          alv_color-color-col = col_total .
+          alv_color-color-int = 0.
+          alv_color-color-inv = 0.
+          APPEND alv_color TO alv_colors.
+      ENDCASE.
+      ASSIGN COMPONENT color_column OF STRUCTURE <new_struc> TO <color_column>.
+      <color_column> = alv_colors.
+      APPEND <new_struc> TO <new_table>.
+
+    ENDLOOP.
+
+    CREATE OBJECT xlsx_writer
+      EXPORTING
+        sheet_content       = <new_table>
+        p_color_column      = color_column
+        p_row_height_header = p_hheigh.
+
+
+  ELSE.
+
+    CREATE OBJECT xlsx_writer
+      EXPORTING
+        sheet_content       = <dbtable>
+        p_row_height_header = p_hheigh.
+
+  ENDIF.
+
+  xlsx_writer->add_custom_doc_property(
+      property_name  = 'sapSourceSystemID'                  "#EC NOTEXT
+      property_value = sy-sysid  ).
+
+  xlsx_writer->add_custom_doc_property(
+  property_name  = 'sapSourceClient'                        "#EC NOTEXT
+  property_value = sy-mandt  ).
+
+  IF p_bgreen EQ abap_true.
+    xlsx_writer->insert_fill(
+        alias            = xlsx_writer->style_header
+        patterntype     = xlsx_writer->fill_pattern_solid
+        fgcolor_rgb     = xlsx_writer->rgb_bright_green
+        bgcolor_indexed = xlsx_writer->indexed_col_sys_background ).
+
+  ENDIF.
+
+  IF NOT p_rotate IS INITIAL.
+    xlsx_writer->insert_style(
+          alias           = xlsx_writer->style_header
+          text_rotation   = p_rotate ).
+  ENDIF.
+
+  IF p_border EQ abap_true.
+
+    xlsx_writer->insert_border(
+        alias            = 'boxed'                          "#EC NOTEXT
+        left_style       = 'thick'                          "#EC NOTEXT
+        left_color_rgb   = xlsx_writer->rgb_yellow
+        right_style      = 'thick'                          "#EC NOTEXT
+        right_color_rgb  = xlsx_writer->rgb_yellow
+        top_style        = 'thick'                          "#EC NOTEXT
+        top_color_rgb    = xlsx_writer->rgb_yellow
+        bottom_style     = 'thick'                          "#EC NOTEXT
+        bottom_color_rgb = xlsx_writer->rgb_yellow ).
+
+    xlsx_writer->insert_style(
+          alias           = xlsx_writer->style_header
+          border_alias   = 'boxed' ).                       "#EC NOTEXT
+  ENDIF.
+
+  IF p_font EQ abap_true.
+    xlsx_writer->insert_font(
+        alias     = 'myFont'                                "#EC NOTEXT
+        name      = 'Calibri'                               "#EC NOTEXT
+        size      = 11
+        bold      = abap_true
+        italic    = abap_true
+        underline = abap_true
+        color_rgb = xlsx_writer->rgb_yellow ).
+    xlsx_writer->insert_style(
+              alias           = xlsx_writer->style_header
+              font_alias   = 'myFont' ).                    "#EC NOTEXT
+  ENDIF.
+
+  IF p_stylex EQ abap_true.
+    xlsx_writer->add_style_exception(
+        style_alias = xlsx_writer->style_header
+        row         = 0
+        col         = 1  ).
+
+  ENDIF.
+
+  xlsx_writer->build( ).
+
+
+  IF pshow EQ abap_true.
+    xlsx_writer->show_sheet( ).
+  ENDIF.
+
+************************************************************************
+* save file to client pc                                               *
+************************************************************************
+**  IF NOT pclntfn IS INITIAL.
+**    TRY.
+**      xlsx_writer->save_file_to_client(
+**        EXPORTING
+**          fs_filename        = pclntfn
+**          start_excel        = plexcel ).
+**      GET TIME.
+**      end_time = sy-uzeit.
+**      duration = end_time - start_time.
+**      WRITE : / 'seconds it took to create and download the xlsx', duration.
+**    ENDTRY.
+**    WRITE: / 'File created on client'(002), pclntfn.
+**  ENDIF.
+**
+**************************************************************************
+*** save file to server                                                  *
+**************************************************************************
+**  IF NOT psrvfn IS INITIAL.
+**    TRY.
+**      xlsx_writer->save_file_to_server(
+**        EXPORTING
+**          fs_filename        = psrvfn ).
+**    ENDTRY.
+**    WRITE: / 'File created on server'(003), psrvfn.
+**  ENDIF.
+  DATA:  lo_send_request TYPE REF TO cl_bcs VALUE IS INITIAL.
+  CLASS cl_bcs DEFINITION LOAD.
+  DATA: lo_document TYPE REF TO cl_document_bcs VALUE IS INITIAL. "document object
+  DATA : i_text TYPE bcsy_text. "Table for body
+  DATA : w_text LIKE LINE OF i_text. "work area for message body
+  DATA: lo_sender TYPE REF TO if_sender_bcs VALUE IS INITIAL. "sender
+  DATA: lo_recipient TYPE REF TO if_recipient_bcs VALUE IS INITIAL. "recipient
+**Selection screen
+  DATA: p_email TYPE adr6-smtp_addr VALUE 'parth.patel@tcs.com', "Email input
+        p_sub   TYPE char50 VALUE 'test'. "email subject
+
+***Attachment data
+  DATA : it_mara TYPE TABLE OF mara,
+         wa_mara TYPE mara.
+  DATA : lv_string      TYPE string,
+         lv_data_string TYPE string,
+         lv_xstring     TYPE xstring.
+  DATA: lit_binary_content TYPE solix_tab,
+        l_attsubject       TYPE sood-objdes.
+
+  lo_send_request = cl_bcs=>create_persistent( ).
+* Message body and subject
+*Set body
+  w_text-line = 'This is the first tutorial of sending email using SAP ABAP programming by SAPNuts.com'.
+  APPEND w_text TO i_text.
+  CLEAR w_text.
+  w_text-line = 'SAPNuts.com is the best SAP ABAP learning portal'.
+  APPEND w_text TO i_text.
+  CLEAR w_text.
+  lo_document = cl_document_bcs=>create_document( "create document
+  i_type = 'RAW' "Type of document HTM, TXT etc
+  i_text =  i_text "email body internal table
+  i_subject = p_sub ). "email subject here p_sub input parameter
+* Pass the document to send request
+  lo_send_request->set_document( lo_document ).
+***Set attachment
+*  SELECT * FROM MARA INTO TABLE IT_MARA UP TO 50 ROWS
+*    WHERE MTART = P_MTART.
+*
+*  LOOP AT IT_MARA INTO WA_MARA.
+*    CONCATENATE WA_MARA-MATNR WA_MARA-MTART WA_MARA-MEINS WA_MARA-MBRSH WA_MARA-MATKL INTO LV_STRING SEPARATED BY CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB.
+*    CONCATENATE LV_DATA_STRING LV_STRING INTO LV_DATA_STRING SEPARATED BY CL_ABAP_CHAR_UTILITIES=>NEWLINE.
+*  ENDLOOP.
+***Convert string to xstring
+*  CALL FUNCTION 'HR_KR_STRING_TO_XSTRING'
+*    EXPORTING
+**     codepage_to      = '8300'
+*      UNICODE_STRING   = LV_DATA_STRING
+**     OUT_LEN          =
+*    IMPORTING
+*      XSTRING_STREAM   = LV_XSTRING
+*    EXCEPTIONS
+*      INVALID_CODEPAGE = 1
+*      INVALID_STRING   = 2
+*      OTHERS           = 3.
+*  IF SY-SUBRC <> 0.
+*    IF SY-SUBRC = 1 .
+*
+*    ELSEIF SY-SUBRC = 2 .
+*      WRITE:/ 'invalid string ' .
+*    ENDIF.
+*  ENDIF.
+*
+****Xstring to binary
+*  CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
+*    EXPORTING
+*      BUFFER     = LV_XSTRING
+*    TABLES
+*      BINARY_TAB = LIT_BINARY_CONTENT.
+***add attachment
+*  CLEAR L_ATTSUBJECT .
+  DATA: xlsx_attachment   TYPE  solix_tab,
+        attachment_lenght TYPE  so_obj_len.
+
+  xlsx_writer->get_file_as_email_attachment(
+    IMPORTING
+      xlsx_attachment   = xlsx_attachment
+      attachment_lenght = attachment_lenght
+  ).
+
+  DATA lt_att_head    TYPE soli_tab.
+  DATA lv_filename    TYPE string.
+  DATA lv_text_line    TYPE soli.
+
+  DATA  mailto TYPE ad_smtpadr VALUE 'maitrykadivar.7188@gmail.com'.
+
+  lv_filename = 'excelexample.xlsx'.
+  CONCATENATE '&SO_FILENAME=' lv_filename INTO lv_text_line.
+  APPEND lv_text_line TO lt_att_head.
+  CONCATENATE 'Material Master Report' sy-datum INTO l_attsubject.
+* Create Attachment
+  TRY.
+      lo_document->add_attachment( EXPORTING
+                                      i_attachment_type = 'XLS'
+                                      i_attachment_subject = 'ExampleSpredad'
+                                      i_attachment_size = attachment_lenght
+                                      i_att_content_hex = xlsx_attachment
+                                      i_attachment_header = lt_att_head ).
+*          CATCH cx_document_bcs INTO lx_document_bcs.
+
+  ENDTRY.
+  TRY.
+      lo_sender = cl_sapuser_bcs=>create( sy-uname ). "sender is the logged in user
+* Set sender to send request
+      lo_send_request->set_sender(
+      EXPORTING
+      i_sender = lo_sender ).
+*    CATCH CX_ADDRESS_BCS.
+****Catch exception here
+  ENDTRY.
+**Set recipient
+  lo_recipient = cl_cam_address_bcs=>create_internet_address( mailto ). "Here Recipient is email input p_email
+  TRY.
+      lo_send_request->add_recipient(
+          EXPORTING
+          i_recipient = lo_recipient
+          i_express = 'X' ).
+*  CATCH CX_SEND_REQ_BCS INTO BCS_EXCEPTION .
+**Catch exception here
+  ENDTRY.
+  TRY.
+      CALL METHOD lo_send_request->set_send_immediately
+        EXPORTING
+          i_send_immediately = abap_true. "here selection screen input p_send
+*    CATCH CX_SEND_REQ_BCS INTO BCS_EXCEPTION .
+**Catch exception here
+  ENDTRY.
+  TRY.
+** Send email
+      lo_send_request->send(
+      EXPORTING
+      i_with_error_screen = 'X' ).
+      COMMIT WORK.
+      IF sy-subrc = 0. "mail sent successfully
+        WRITE :/ 'Mail sent successfully'.
+      ENDIF.
+*    CATCH CX_SEND_REQ_BCS INTO BCS_EXCEPTION .
+*catch exception here
+  ENDTRY.

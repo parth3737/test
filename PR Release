@@ -1,2 +1,24 @@
 WS20000077 wf for overall PR release 
 https://archive.sap.com/discussions/thread/1354162  - configuration for overall
+
+
+1) default_host->sap->bc->bsp->sap->swn_config
+2) default_host->sap->bc->bsp->sap->swn_message1
+3) default_host->sap->bc->bsp->sap->swn_wiexecute
+4) default_host->sap->bc->workflow->shortcut
+5) default_host->sap->public->bc->workflow->shortcut
+6) /default_host/sap/bc/bsp/sap/system
+7) /default_host/sap/bc/bsp/sap/public/bc
+8) /default_host/sap/public/bsp/sap/public/bc
+9) /default_host/sap/public/bsp/sap/htmlb
+10) /default_host/sap/public/bc/ur
+11) /sap/bc/bsp/sap/system
+12) /sap/bc/bsp/sap/public/bc
+13) /sap/public/bsp/sap/public/bc
+14) /sap/public/bsp/sap/system
+15) /sap/public/bsp/sap/htmlb
+16) /sap/public/bc
+17) /sap/public/bc/ur 
+ 
+Prog:- SWN_SELSEN, variant Name:-ZKIT_WF, Freq:- will be run daily with 5 min interval 
+ 

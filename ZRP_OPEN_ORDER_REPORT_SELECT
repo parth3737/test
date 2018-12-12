@@ -1,0 +1,69 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZRP_OPEN_ORDER_REPORT_SELECT
+*&---------------------------------------------------------------------*
+selection-screen: begin of block b1 with frame title text-s01.
+select-options: s_erdat for vbak-erdat obligatory,
+                s_payer for knvp-kunn2." OBLIGATORY.
+
+parameters: p_parvw type knvp-parvw. " OBLIGATORY DEFAULT 'PY'.
+
+select-options: s_auart  for vbak-auart,
+                s_ernam  for vbak-ernam matchcode object user_comp,
+                s_vbeln  for vbak-vbeln,
+                s_vkorg  for vbak-vkorg no-extension no intervals obligatory,
+                s_spart  for vbak-spart,
+                s_matnr  for vbap-matnr,
+                s_matkl  for mara-matkl,
+                s_mail   for sza5_d0700-smtp_addr no intervals.
+selection-screen: end of block b1.
+
+initialization.
+
+  gs_ranges-sign = 'I'.
+  gs_ranges-option = 'EQ'.
+  gs_ranges-low = 'RG'.
+  append gs_ranges to gt_ranges.
+
+  gs_ranges-low = 'WE'.
+  append gs_ranges to gt_ranges.
+
+  gs_ranges-low = 'AG'.
+  append gs_ranges to gt_ranges.
+
+  gs_ranges-low = 'RE'.
+  append gs_ranges to gt_ranges.
+
+
+at selection-screen on s_erdat.
+  data: lv_days type i,
+        lrs_erdat like line of s_erdat,
+        months type i,
+        years type i,
+        days type i.
+
+  loop at s_erdat into lrs_erdat.
+
+    call function 'HR_SGPBS_YRS_MTHS_DAYS'
+      exporting
+        beg_da        = lrs_erdat-low
+        end_da        = lrs_erdat-high
+      importing
+**       no_day              = days
+**     NO_MONTH            =
+**     NO_YEAR             =
+        no_cal_day    = days
+      exceptions
+        dateint_error = 1
+        others        = 2.
+    if sy-subrc <> 0.
+* Implement suitable error handling here
+    endif.
+
+    lv_days = lv_days + days.
+  endloop.
+
+  if lv_days > 731.
+
+    message 'More than two year' type 'E'.
+
+  endif.

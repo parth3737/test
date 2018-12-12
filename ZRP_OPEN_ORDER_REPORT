@@ -1,0 +1,32 @@
+*&---------------------------------------------------------------------*
+*& Report  ZRP_OPEN_ORDER_REPORT
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+report  zrp_open_order_report.
+
+include zrp_open_order_report_top.
+include zrp_open_order_report_select.
+include zrp_open_order_report_form.
+
+start-of-selection.
+  if p_parvw not in gt_ranges and p_parvw is not initial.
+    message text-e01 type 'S' display like 'E'.
+    leave list-processing.
+  endif.
+
+  perform fetch_data.
+  perform merge_data.
+
+  if gt_final is initial.
+    message text-003 type 'S' display like 'E'..
+    leave list-processing.
+  endif.
+
+
+end-of-selection.
+
+  perform display_alv.

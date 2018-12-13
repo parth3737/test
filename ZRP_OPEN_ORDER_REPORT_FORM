@@ -9,231 +9,231 @@
 *  -->  p1        text
 *  <--  p2        text
 *----------------------------------------------------------------------*
-form fetch_data .
-  data: lv_parvw type parvw,
-        ls_knvp  type ty_knvp,
-        lr_kunnr  type range of kna1-kunnr,
-        ls_kunnr  like line of lr_kunnr,
-        lflg_matnr type abap_bool.
+FORM fetch_data .
+  DATA: lv_parvw   TYPE parvw,
+        ls_knvp    TYPE ty_knvp,
+        lr_kunnr   TYPE RANGE OF kna1-kunnr,
+        ls_kunnr   LIKE LINE OF lr_kunnr,
+        lflg_matnr TYPE abap_bool.
 
-  clear: gt_vbak,gt_vbap,gt_vbup,gt_final,gt_mara.
+  CLEAR: gt_vbak,gt_vbap,gt_vbup,gt_final,gt_mara.
 
-  if s_matnr is not initial or s_matkl is not initial.
+  IF s_matnr IS NOT INITIAL OR s_matkl IS NOT INITIAL.
     lflg_matnr = abap_true.
-    select matnr matkl from mara into table gt_mara
-                       where matnr in  s_matnr
-                        and matkl in s_matkl.
-    if sy-subrc is initial.
-      select matnr vbeln posnr from vapma
-                              into table gt_vapma
-                              for all entries in gt_mara
-                              where matnr = gt_mara-matnr
-                                and vkorg in s_vkorg
-                                and spart in s_spart
-                                and auart in s_auart
-                                and vbeln in s_vbeln
-                                and ernam in s_ernam.
+    SELECT matnr matkl FROM mara INTO TABLE gt_mara
+                       WHERE matnr IN  s_matnr
+                        AND matkl IN s_matkl.
+    IF sy-subrc IS INITIAL.
+      SELECT matnr vbeln posnr FROM vapma
+                              INTO TABLE gt_vapma
+                              FOR ALL ENTRIES IN gt_mara
+                              WHERE matnr = gt_mara-matnr
+                                AND vkorg IN s_vkorg
+                                AND spart IN s_spart
+                                AND auart IN s_auart
+                                AND vbeln IN s_vbeln
+                                AND ernam IN s_ernam.
 
-      if sy-subrc is initial.
-        select vbeln erdat ernam auart vkorg vtweg spart vdatu kunnr from vbak
-                                   into table gt_vbak
-                                   for all entries in gt_vapma
-                                  where vbeln = gt_vapma-vbeln
-                                    and erdat in s_erdat
-                                    and ernam in s_ernam
-                                    and vbtyp = 'C'.
-      endif.
-    endif.
+      IF sy-subrc IS INITIAL.
+        SELECT vbeln erdat ernam auart vkorg vtweg spart vdatu kunnr FROM vbak
+                                   INTO TABLE gt_vbak
+                                   FOR ALL ENTRIES IN gt_vapma
+                                  WHERE vbeln = gt_vapma-vbeln
+                                    AND erdat IN s_erdat
+                                    AND ernam IN s_ernam
+                                    AND vbtyp = 'C'.
+      ENDIF.
+    ENDIF.
 
-  elseif s_payer is not initial or p_parvw is not initial.
+  ELSEIF s_payer IS NOT INITIAL OR p_parvw IS NOT INITIAL.
 
-    call function 'CONVERSION_EXIT_PARVW_INPUT'
-      exporting
+    CALL FUNCTION 'CONVERSION_EXIT_PARVW_INPUT'
+      EXPORTING
         input  = p_parvw
-      importing
+      IMPORTING
         output = lv_parvw.
 
 
-    select kunnr parvw kunn2 lifnr
-         from knvp into table gt_knvp
-         where kunn2 in s_payer and parvw = lv_parvw and vkorg in s_vkorg.
+    SELECT kunnr parvw kunn2 lifnr
+         FROM knvp INTO TABLE gt_knvp
+         WHERE kunn2 IN s_payer AND parvw = lv_parvw AND vkorg IN s_vkorg.
 
-    if sy-subrc is initial.
+    IF sy-subrc IS INITIAL.
 
-      select vbeln erdat ernam auart vkorg vtweg spart vdatu kunnr from vbak
-                                     into table gt_vbak
-                                     for all entries in gt_knvp
-                                    where vbeln in s_vbeln
-                                      and erdat in s_erdat
-                                      and ernam in s_ernam
-                                      and vbtyp = 'C'
-                                      and auart in s_auart
-                                      and spart in s_spart
-                                      and kunnr = gt_knvp-kunnr.
+      SELECT vbeln erdat ernam auart vkorg vtweg spart vdatu kunnr FROM vbak
+                                     INTO TABLE gt_vbak
+                                     FOR ALL ENTRIES IN gt_knvp
+                                    WHERE vbeln IN s_vbeln
+                                      AND erdat IN s_erdat
+                                      AND ernam IN s_ernam
+                                      AND vbtyp = 'C'
+                                      AND auart IN s_auart
+                                      AND spart IN s_spart
+                                      AND kunnr = gt_knvp-kunnr.
 
 
-    endif.
-  endif.
+    ENDIF.
+  ENDIF.
 
-  if lflg_matnr is not initial and ( s_payer is not initial or p_parvw is not initial ).
+  IF lflg_matnr IS NOT INITIAL AND ( s_payer IS NOT INITIAL OR p_parvw IS NOT INITIAL ).
 
-    call function 'CONVERSION_EXIT_PARVW_INPUT'
-      exporting
+    CALL FUNCTION 'CONVERSION_EXIT_PARVW_INPUT'
+      EXPORTING
         input  = p_parvw
-      importing
+      IMPORTING
         output = lv_parvw.
 
 
-    select kunnr parvw kunn2 lifnr
-         from knvp into table gt_knvp
-         where kunn2 in s_payer and parvw = lv_parvw and vkorg in s_vkorg.
+    SELECT kunnr parvw kunn2 lifnr
+         FROM knvp INTO TABLE gt_knvp
+         WHERE kunn2 IN s_payer AND parvw = lv_parvw AND vkorg IN s_vkorg.
 
-    if sy-subrc is initial.
-      loop at gt_knvp into ls_knvp.
+    IF sy-subrc IS INITIAL.
+      LOOP AT gt_knvp INTO ls_knvp.
         ls_kunnr-sign =  'I'.
         ls_kunnr-option = 'EQ'.
         ls_kunnr-low = ls_knvp-kunnr.
-        append ls_kunnr to lr_kunnr.
-      endloop.
+        APPEND ls_kunnr TO lr_kunnr.
+      ENDLOOP.
 
-      delete gt_vbak where kunnr not in lr_kunnr.
+      DELETE gt_vbak WHERE kunnr NOT IN lr_kunnr.
 
-    endif.
-  endif.
-
-
-  if gt_vbak is initial.
-
-    select vbeln erdat ernam auart vkorg vtweg spart vdatu kunnr from vbak
-                                  into table gt_vbak
-                                 where vbeln in s_vbeln
-                                   and erdat in s_erdat
-                                   and ernam in s_ernam
-                                   and vbtyp = 'C'
-                                   and auart in s_auart
-                                   and vkorg in s_vkorg
-                                   and spart in s_spart.
-
-  endif.
-
-  if gt_vapma is not initial.
-    select vbeln posnr matnr netwr kwmeng from vbap
-                                        into table gt_vbap
-                                        for all entries in gt_vapma
-                                        where vbeln = gt_vapma-vbeln
-                                          and posnr = gt_vapma-posnr.
-  elseif gt_vbak is not initial.
-    select vbeln posnr matnr netwr kwmeng from vbap
-                                          into table gt_vbap
-                                          for all entries in gt_vbak
-                                          where vbeln = gt_vbak-vbeln.
-  endif.
-  if sy-subrc is initial.
-
-    select vbeln posnr lfgsa wbsta fksta gbsta from vbup
-                                         into table gt_vbup
-                                         for all entries in gt_vbap
-                                         where vbeln = gt_vbap-vbeln
-                                           and posnr = gt_vbap-posnr.
-
-    select vbelv posnv vbeln posnn vbtyp_n rfmng_flo erdat from vbfa
-                                   into table gt_vbfaj
-                                   for all entries in gt_vbap
-                                   where vbelv = gt_vbap-vbeln
-                                     and posnv = gt_vbap-posnr
-                                     and vbtyp_n = 'J'.
+    ENDIF.
+  ENDIF.
 
 
-    select vbelv posnv vbeln posnn vbtyp_n rfmng_flo erdat from vbfa
-                             into table gt_vbfam
-                             for all entries in gt_vbfaj
-                             where vbelv = gt_vbfaj-vbeln
-                               and posnv = gt_vbfaj-posnn
-                               and vbtyp_n = 'M'.
+  IF gt_vbak IS INITIAL.
 
-    select vbelv posnv vbeln posnn vbtyp_n  rfmng_flo erdat from vbfa
-                               into table gt_vbfak
-                               for all entries in gt_vbfaj
-                               where vbelv = gt_vbfaj-vbeln
-                                 and posnv = gt_vbfaj-posnn
-                                 and vbtyp_n = 'R'.
+    SELECT vbeln erdat ernam auart vkorg vtweg spart vdatu kunnr FROM vbak
+                                  INTO TABLE gt_vbak
+                                 WHERE vbeln IN s_vbeln
+                                   AND erdat IN s_erdat
+                                   AND ernam IN s_ernam
+                                   AND vbtyp = 'C'
+                                   AND auart IN s_auart
+                                   AND vkorg IN s_vkorg
+                                   AND spart IN s_spart.
 
-    select vbelv posnv vbeln posnn vbtyp_n rfmng_flo erdat from vbfa
-                                   into table gt_vbfa5
-                                   for all entries in gt_vbap
-                                   where vbelv = gt_vbap-vbeln
-                                     and posnv = gt_vbap-posnr
-                                     and vbtyp_n = '5'.
+  ENDIF.
 
-    if gt_vbfaj is not initial.
-      select vbeln lfdat from likp into table gt_likp
-                         for all entries in gt_vbfaj
-                         where vbeln = gt_vbfaj-vbeln.
+  IF gt_vapma IS NOT INITIAL.
+    SELECT vbeln posnr matnr netwr kwmeng FROM vbap
+                                        INTO TABLE gt_vbap
+                                        FOR ALL ENTRIES IN gt_vapma
+                                        WHERE vbeln = gt_vapma-vbeln
+                                          AND posnr = gt_vapma-posnr.
+  ELSEIF gt_vbak IS NOT INITIAL.
+    SELECT vbeln posnr matnr netwr kwmeng FROM vbap
+                                          INTO TABLE gt_vbap
+                                          FOR ALL ENTRIES IN gt_vbak
+                                          WHERE vbeln = gt_vbak-vbeln.
+  ENDIF.
+  IF sy-subrc IS INITIAL.
 
-      select vbeln posnr lfgsa wbsta fksta gbsta from vbup
-                                         appending table gt_vbup
-                                         for all entries in gt_vbfaj
-                                         where vbeln = gt_vbfaj-vbeln
-                                           and posnr = gt_vbfaj-posnn.
+    SELECT vbeln posnr lfgsa wbsta fksta gbsta FROM vbup
+                                         INTO TABLE gt_vbup
+                                         FOR ALL ENTRIES IN gt_vbap
+                                         WHERE vbeln = gt_vbap-vbeln
+                                           AND posnr = gt_vbap-posnr.
 
-    endif.
+    SELECT vbelv posnv vbeln posnn vbtyp_n rfmng_flo erdat FROM vbfa
+                                   INTO TABLE gt_vbfaj
+                                   FOR ALL ENTRIES IN gt_vbap
+                                   WHERE vbelv = gt_vbap-vbeln
+                                     AND posnv = gt_vbap-posnr
+                                     AND vbtyp_n = 'J'.
 
-    if gt_vbfam is not initial.
-      select vbeln fksto from vbrk into table gt_vbrk_vbeln
-                   for all entries in gt_vbfam
-                   where vbeln = gt_vbfam-vbeln.
 
-    endif.
+    SELECT vbelv posnv vbeln posnn vbtyp_n rfmng_flo erdat FROM vbfa
+                             INTO TABLE gt_vbfam
+                             FOR ALL ENTRIES IN gt_vbfaj
+                             WHERE vbelv = gt_vbfaj-vbeln
+                               AND posnv = gt_vbfaj-posnn
+                               AND vbtyp_n = 'M'.
 
-    if gt_vbfa5 is not initial.
-      select vbeln fksto from vbrk appending table gt_vbrk_vbeln
-                   for all entries in gt_vbfa5
-                   where vbeln = gt_vbfa5-vbeln.
+    SELECT vbelv posnv vbeln posnn vbtyp_n  rfmng_flo erdat FROM vbfa
+                               INTO TABLE gt_vbfak
+                               FOR ALL ENTRIES IN gt_vbfaj
+                               WHERE vbelv = gt_vbfaj-vbeln
+                                 AND posnv = gt_vbfaj-posnn
+                                 AND vbtyp_n = 'R'.
 
-    endif.
-    if gt_mara is initial.
-      select matnr matkl from mara
-                         into table gt_mara
-                         for all entries in gt_vbap
-                         where matnr = gt_vbap-matnr.
+    SELECT vbelv posnv vbeln posnn vbtyp_n rfmng_flo erdat FROM vbfa
+                                   INTO TABLE gt_vbfa5
+                                   FOR ALL ENTRIES IN gt_vbap
+                                   WHERE vbelv = gt_vbap-vbeln
+                                     AND posnv = gt_vbap-posnr
+                                     AND vbtyp_n = '5'.
 
-    endif.
+    IF gt_vbfaj IS NOT INITIAL.
+      SELECT vbeln lfdat FROM likp INTO TABLE gt_likp
+                         FOR ALL ENTRIES IN gt_vbfaj
+                         WHERE vbeln = gt_vbfaj-vbeln.
 
-    if gt_mara is not initial.
-      select * from makt
-                         into table gt_makt
-                         for all entries in gt_mara
-                         where matnr = gt_mara-matnr
-                           and spras = sy-langu.
-    endif.
+      SELECT vbeln posnr lfgsa wbsta fksta gbsta FROM vbup
+                                         APPENDING TABLE gt_vbup
+                                         FOR ALL ENTRIES IN gt_vbfaj
+                                         WHERE vbeln = gt_vbfaj-vbeln
+                                           AND posnr = gt_vbfaj-posnn.
 
-    if gt_knvp is initial.
-      select kunnr parvw kunn2 lifnr from knvp
-                               into table gt_knvp
-                               for all entries in gt_vbak
-                               where kunnr = gt_vbak-kunnr.
+    ENDIF.
 
-      select kunnr parvw kunn2 lifnr from knvp
-                               appending table gt_knvp
-                               for all entries in gt_knvp
-                               where kunnr = gt_knvp-kunn2.
+    IF gt_vbfam IS NOT INITIAL.
+      SELECT vbeln fksto FROM vbrk INTO TABLE gt_vbrk_vbeln
+                   FOR ALL ENTRIES IN gt_vbfam
+                   WHERE vbeln = gt_vbfam-vbeln.
 
-    endif.
+    ENDIF.
 
-    if gt_knvp is not initial.
-      select kunnr name1 from kna1
-        into table gt_kna1
-        for all entries in gt_knvp
-          where kunnr = gt_knvp-kunnr.
+    IF gt_vbfa5 IS NOT INITIAL.
+      SELECT vbeln fksto FROM vbrk APPENDING TABLE gt_vbrk_vbeln
+                   FOR ALL ENTRIES IN gt_vbfa5
+                   WHERE vbeln = gt_vbfa5-vbeln.
 
-      select kunnr name1 from kna1
-        appending table gt_kna1
-          for all entries in gt_vbak
-          where kunnr = gt_vbak-kunnr.
+    ENDIF.
+    IF gt_mara IS INITIAL.
+      SELECT matnr matkl FROM mara
+                         INTO TABLE gt_mara
+                         FOR ALL ENTRIES IN gt_vbap
+                         WHERE matnr = gt_vbap-matnr.
 
-    endif.
-  endif.
-endform.                    " FETCH_DATA
+    ENDIF.
+
+    IF gt_mara IS NOT INITIAL.
+      SELECT * FROM makt
+                         INTO TABLE gt_makt
+                         FOR ALL ENTRIES IN gt_mara
+                         WHERE matnr = gt_mara-matnr
+                           AND spras = sy-langu.
+    ENDIF.
+
+    IF gt_knvp IS INITIAL.
+      SELECT kunnr parvw kunn2 lifnr FROM knvp
+                               INTO TABLE gt_knvp
+                               FOR ALL ENTRIES IN gt_vbak
+                               WHERE kunnr = gt_vbak-kunnr.
+
+      SELECT kunnr parvw kunn2 lifnr FROM knvp
+                               APPENDING TABLE gt_knvp
+                               FOR ALL ENTRIES IN gt_knvp
+                               WHERE kunnr = gt_knvp-kunn2.
+
+    ENDIF.
+
+    IF gt_knvp IS NOT INITIAL.
+      SELECT kunnr name1 FROM kna1
+        INTO TABLE gt_kna1
+        FOR ALL ENTRIES IN gt_knvp
+          WHERE kunnr = gt_knvp-kunnr.
+
+      SELECT kunnr name1 FROM kna1
+        APPENDING TABLE gt_kna1
+          FOR ALL ENTRIES IN gt_vbak
+          WHERE kunnr = gt_vbak-kunnr.
+
+    ENDIF.
+  ENDIF.
+ENDFORM.                    " FETCH_DATA
 *&---------------------------------------------------------------------*
 *&      Form  MERGE_DATA
 *&---------------------------------------------------------------------*
@@ -242,75 +242,75 @@ endform.                    " FETCH_DATA
 *  -->  p1        text
 *  <--  p2        text
 *----------------------------------------------------------------------*
-form merge_data .
-  data: ls_final type zopen_ord_output,
-         ls_vbak type ty_vbak,
-         ls_makt type makt,
-         ls_kna1 type ty_kna1,
-         lv_jmeng type rfmng,
-         lv_meng type rfmng,
-         lv_kmeng type rfmng,
-         lv_wmengj type rfmng,
-         lv_wmengk type rfmng,
-         lv_wmengm type rfmng,
-         ls_mara type ty_mara,
-         lflg_no_dlv type abap_bool,
-         ls_vbfak type ty_vbfa,
-         ls_vbfam type ty_vbfa,
-         ls_vbfaj type ty_vbfa,
-         ls_likp type ty_likp,
-         ls_vbup type ty_vbup,
-         ls_vbupj type ty_vbup,
-         ls_knvp type ty_knvp,
-         lv_lfgsa type char1,
-         lflg_so_sts_chk type char1,
-         ls_vbap type ty_vbap.
+FORM merge_data .
+  DATA: ls_final        TYPE zopen_ord_output,
+        ls_vbak         TYPE ty_vbak,
+        ls_makt         TYPE makt,
+        ls_kna1         TYPE ty_kna1,
+        lv_jmeng        TYPE rfmng,
+        lv_meng         TYPE rfmng,
+        lv_kmeng        TYPE rfmng,
+        lv_wmengj       TYPE rfmng,
+        lv_wmengk       TYPE rfmng,
+        lv_wmengm       TYPE rfmng,
+        ls_mara         TYPE ty_mara,
+        lflg_no_dlv     TYPE abap_bool,
+        ls_vbfak        TYPE ty_vbfa,
+        ls_vbfam        TYPE ty_vbfa,
+        ls_vbfaj        TYPE ty_vbfa,
+        ls_likp         TYPE ty_likp,
+        ls_vbup         TYPE ty_vbup,
+        ls_vbupj        TYPE ty_vbup,
+        ls_knvp         TYPE ty_knvp,
+        lv_lfgsa        TYPE char1,
+        lflg_so_sts_chk TYPE char1,
+        ls_vbap         TYPE ty_vbap.
 
-  sort gt_vbak by vbeln.
-  sort gt_knvp by kunnr parvw.
-  delete adjacent duplicates from gt_knvp comparing all fields.
-  sort gt_kna1 by kunnr.
-  delete adjacent duplicates from gt_kna1 comparing all fields.
-  sort gt_makt by matnr.
-  sort gt_mara by matnr.
-  sort gt_vbfaj by vbelv posnv vbtyp_n.
-  sort gt_vbfak by vbelv posnv vbtyp_n.
-  sort gt_vbfam by vbelv posnv vbtyp_n.
-  sort gt_likp by vbeln.
-  sort gt_vbrk_vbeln by vbeln fksto.
-  sort gt_vbup by vbeln posnr.
-  sort gt_vbap by vbeln posnr.
+  SORT gt_vbak BY vbeln.
+  SORT gt_knvp BY kunnr parvw.
+  DELETE ADJACENT DUPLICATES FROM gt_knvp COMPARING ALL FIELDS.
+  SORT gt_kna1 BY kunnr.
+  DELETE ADJACENT DUPLICATES FROM gt_kna1 COMPARING ALL FIELDS.
+  SORT gt_makt BY matnr.
+  SORT gt_mara BY matnr.
+  SORT gt_vbfaj BY vbelv posnv vbtyp_n.
+  SORT gt_vbfak BY vbelv posnv vbtyp_n.
+  SORT gt_vbfam BY vbelv posnv vbtyp_n.
+  SORT gt_likp BY vbeln.
+  SORT gt_vbrk_vbeln BY vbeln fksto.
+  SORT gt_vbup BY vbeln posnr.
+  SORT gt_vbap BY vbeln posnr.
 
-  loop at gt_vbap into ls_vbap.
+  LOOP AT gt_vbap INTO ls_vbap.
 
-    clear: ls_vbak, ls_makt, ls_mara, ls_vbfaj, ls_likp, ls_vbup,
+    CLEAR: ls_vbak, ls_makt, ls_mara, ls_vbfaj, ls_likp, ls_vbup,
            ls_knvp, ls_kna1, lv_wmengk, ls_vbfak, ls_vbfam, lv_lfgsa,
            ls_final, lv_wmengm, lv_wmengj,lflg_no_dlv,ls_vbupj,lflg_so_sts_chk.
 
 
-    move-corresponding ls_vbap to ls_final.
+    MOVE-CORRESPONDING ls_vbap TO ls_final.
 
-    read table gt_vbup into ls_vbup with key vbeln = ls_final-vbeln
+    READ TABLE gt_vbup INTO ls_vbup WITH KEY vbeln = ls_final-vbeln
                                              posnr = ls_final-posnr
-                                             binary search.
-    if sy-subrc is initial.
-      move-corresponding ls_vbup to ls_final.
+                                             BINARY SEARCH.
+    IF sy-subrc IS INITIAL.
+      MOVE-CORRESPONDING ls_vbup TO ls_final.
       lv_lfgsa = ls_vbup-lfgsa.
-    endif.
-    if ls_vbup-lfgsa = 'A'.
+    ENDIF.
+    IF ls_vbup-lfgsa = 'A'.
       ls_final-lfgsa = 'Not yet delivered'.
-    elseif ls_vbup-lfgsa = 'B'.
+    ELSEIF ls_vbup-lfgsa = 'B'.
       ls_final-lfgsa = 'Partially delivered'.
-    elseif ls_vbup-lfgsa = 'C'.
+    ELSEIF ls_vbup-lfgsa = 'C'.
       ls_final-lfgsa = 'Completely delivered'.
-    endif.
+    ENDIF.
 
-    read table gt_vbak into ls_vbak with key vbeln = ls_vbap-vbeln
-                                    binary search.
-    if sy-subrc is not initial.
-      continue.
-    endif.
-    move-corresponding ls_vbak to ls_final.
+    READ TABLE gt_vbak INTO ls_vbak WITH KEY vbeln = ls_vbap-vbeln
+                                    BINARY SEARCH.
+    IF sy-subrc IS NOT INITIAL.
+      CONTINUE.
+    ENDIF.
+    MOVE-CORRESPONDING ls_vbak TO ls_final.
 *    READ TABLE gt_knvp INTO ls_knvp WITH KEY kunnr = ls_vbak-kunnr
 *                                             parvw = 'AG'
 *                                    BINARY SEARCH.
@@ -318,165 +318,165 @@ form merge_data .
 *      ls_final-slifn = ls_knvp-lifnr.
 *    ENDIF.
 
-    read table gt_kna1 into ls_kna1 with key kunnr = ls_vbak-kunnr binary search.
-    if sy-subrc is initial.
+    READ TABLE gt_kna1 INTO ls_kna1 WITH KEY kunnr = ls_vbak-kunnr BINARY SEARCH.
+    IF sy-subrc IS INITIAL.
       ls_final-name = ls_kna1-name1.
-    endif.
+    ENDIF.
 
-    read table gt_knvp into ls_knvp with key kunnr = ls_vbak-kunnr
+    READ TABLE gt_knvp INTO ls_knvp WITH KEY kunnr = ls_vbak-kunnr
                                              parvw = 'RG'
-                                    binary search.
-    if sy-subrc is initial.
+                                    BINARY SEARCH.
+    IF sy-subrc IS INITIAL.
       ls_final-kunn2 = ls_knvp-kunn2.
-      read table gt_kna1 into ls_kna1 with key kunnr = ls_knvp-kunn2 binary search.
-      if sy-subrc is initial.
+      READ TABLE gt_kna1 INTO ls_kna1 WITH KEY kunnr = ls_knvp-kunn2 BINARY SEARCH.
+      IF sy-subrc IS INITIAL.
         ls_final-name1 = ls_kna1-name1.
-      endif.
-    endif.
+      ENDIF.
+    ENDIF.
 
-    read table gt_makt into ls_makt with key matnr = ls_final-matnr
-                                    binary search.
-    if sy-subrc is initial.
+    READ TABLE gt_makt INTO ls_makt WITH KEY matnr = ls_final-matnr
+                                    BINARY SEARCH.
+    IF sy-subrc IS INITIAL.
       ls_final-maktx = ls_makt-maktx.
-    endif.
+    ENDIF.
 
-    read table gt_mara into ls_mara with key matnr = ls_final-matnr
-                                    binary search.
-    if sy-subrc is initial.
+    READ TABLE gt_mara INTO ls_mara WITH KEY matnr = ls_final-matnr
+                                    BINARY SEARCH.
+    IF sy-subrc IS INITIAL.
       ls_final-matkl = ls_mara-matkl.
-    endif.
+    ENDIF.
 
-    clear: lv_wmengj,lv_wmengm,lv_wmengk.
+    CLEAR: lv_wmengj,lv_wmengm,lv_wmengk.
 
-    loop at  gt_vbfaj into ls_vbfaj where vbelv = ls_final-vbeln
-                                     and posnv = ls_final-posnr.
+    LOOP AT  gt_vbfaj INTO ls_vbfaj WHERE vbelv = ls_final-vbeln
+                                     AND posnv = ls_final-posnr.
 *                                     AND vbtyp_n = 'J'.
 
-      move ls_vbfaj-rfmng_flo to lv_meng.
+      MOVE ls_vbfaj-rfmng_flo TO lv_meng.
       lv_wmengj = lv_wmengj + lv_meng.
-      clear lv_meng.
+      CLEAR lv_meng.
 
       ls_final-vbelv = ls_vbfaj-vbeln.
 
-      read table gt_likp into ls_likp with key vbeln = ls_final-vbelv
-                                     binary search.
-      if sy-subrc is initial.
+      READ TABLE gt_likp INTO ls_likp WITH KEY vbeln = ls_final-vbelv
+                                     BINARY SEARCH.
+      IF sy-subrc IS INITIAL.
         ls_final-lfdat = ls_likp-lfdat.
-      endif.
+      ENDIF.
 
-      if ls_vbak-auart = 'YBFC'.
-        loop at gt_vbfa5 into ls_vbfam where vbelv = ls_vbfaj-vbeln
-                                         and posnv = ls_vbfaj-posnn.
-          read table gt_vbrk_vbeln transporting no fields
-                                           with key vbeln = ls_vbfam-vbeln
+      IF ls_vbak-auart = 'YBFC'.
+        LOOP AT gt_vbfa5 INTO ls_vbfam WHERE vbelv = ls_vbfaj-vbeln
+                                         AND posnv = ls_vbfaj-posnn.
+          READ TABLE gt_vbrk_vbeln TRANSPORTING NO FIELDS
+                                           WITH KEY vbeln = ls_vbfam-vbeln
                                                     fksto = space
-                                                    binary search.
+                                                    BINARY SEARCH.
 
-          check sy-subrc is initial.
+          CHECK sy-subrc IS INITIAL.
 
 
-          move ls_vbfam-rfmng_flo to lv_meng.
+          MOVE ls_vbfam-rfmng_flo TO lv_meng.
           lv_wmengm = lv_wmengm + lv_meng.
-          clear lv_meng.
+          CLEAR lv_meng.
 
-        endloop.
-        if sy-subrc is not initial.
-          loop at gt_vbfa5 into ls_vbfam where vbelv = ls_vbap-vbeln
-                                           and posnv = ls_vbap-posnr.
-            read table gt_vbrk_vbeln transporting no fields
-                                             with key vbeln = ls_vbfam-vbeln
+        ENDLOOP.
+        IF sy-subrc IS NOT INITIAL.
+          LOOP AT gt_vbfa5 INTO ls_vbfam WHERE vbelv = ls_vbap-vbeln
+                                           AND posnv = ls_vbap-posnr.
+            READ TABLE gt_vbrk_vbeln TRANSPORTING NO FIELDS
+                                             WITH KEY vbeln = ls_vbfam-vbeln
                                                       fksto = space
-                                                      binary search.
+                                                      BINARY SEARCH.
 
-            check sy-subrc is initial.
+            CHECK sy-subrc IS INITIAL.
 
 
-            move ls_vbfam-rfmng_flo to lv_meng.
+            MOVE ls_vbfam-rfmng_flo TO lv_meng.
             lv_wmengm = lv_wmengm + lv_meng.
-            clear lv_meng.
+            CLEAR lv_meng.
             lflg_so_sts_chk = abap_true.
-          endloop.
-        endif.
-      else.
-        loop at gt_vbfam into ls_vbfam where vbelv = ls_vbfaj-vbeln
-                                         and posnv = ls_vbfaj-posnn.
+          ENDLOOP.
+        ENDIF.
+      ELSE.
+        LOOP AT gt_vbfam INTO ls_vbfam WHERE vbelv = ls_vbfaj-vbeln
+                                         AND posnv = ls_vbfaj-posnn.
 
-          read table gt_vbrk_vbeln transporting no fields
-                                   with key vbeln = ls_vbfam-vbeln
+          READ TABLE gt_vbrk_vbeln TRANSPORTING NO FIELDS
+                                   WITH KEY vbeln = ls_vbfam-vbeln
                                             fksto = space
-                                            binary search.
-          check sy-subrc is initial.
+                                            BINARY SEARCH.
+          CHECK sy-subrc IS INITIAL.
 
 
-          move ls_vbfam-rfmng_flo to lv_meng.
+          MOVE ls_vbfam-rfmng_flo TO lv_meng.
           lv_wmengm = lv_wmengm + lv_meng.
-          clear lv_meng.
-        endloop.
-      endif.
+          CLEAR lv_meng.
+        ENDLOOP.
+      ENDIF.
 
-      loop at gt_vbfak into ls_vbfak where vbelv = ls_vbfaj-vbeln
-                                       and posnv = ls_vbfaj-posnn.
-        move ls_vbfak-rfmng_flo to lv_meng.
+      LOOP AT gt_vbfak INTO ls_vbfak WHERE vbelv = ls_vbfaj-vbeln
+                                       AND posnv = ls_vbfaj-posnn.
+        MOVE ls_vbfak-rfmng_flo TO lv_meng.
         lv_wmengk = lv_wmengk + lv_meng.
-        clear lv_meng.
-      endloop.
-      if lflg_so_sts_chk is not initial.
-        if ls_vbup-gbsta = 'C' and
-         ( lv_lfgsa <> 'A' or lv_lfgsa <> 'B' ).
+        CLEAR lv_meng.
+      ENDLOOP.
+      IF lflg_so_sts_chk IS NOT INITIAL.
+        IF ls_vbup-gbsta = 'C' AND
+         ( lv_lfgsa <> 'A' OR lv_lfgsa <> 'B' ).
           lflg_no_dlv = abap_true.
-          continue.
-        endif.
-      else.
-        read table gt_vbup into ls_vbupj with key vbeln = ls_vbfaj-vbeln
+          CONTINUE.
+        ENDIF.
+      ELSE.
+        READ TABLE gt_vbup INTO ls_vbupj WITH KEY vbeln = ls_vbfaj-vbeln
                                                   posnr = ls_vbfaj-posnn
-                                                  binary search.
-        if ls_vbupj-gbsta = 'C' and
-         ( ls_vbupj-fksta <> 'A' or ls_vbupj-fksta <> 'B' ).
-          continue.
-        endif.
-      endif.
+                                                  BINARY SEARCH.
+        IF ls_vbupj-gbsta = 'C' AND
+         ( ls_vbupj-fksta <> 'A' OR ls_vbupj-fksta <> 'B' ).
+          CONTINUE.
+        ENDIF.
+      ENDIF.
 
-      if ls_vbupj-wbsta = 'A'.
+      IF ls_vbupj-wbsta = 'A'.
         ls_final-wbsta = 'Not yet processed'.
-      elseif ls_vbupj-wbsta = 'B'.
+      ELSEIF ls_vbupj-wbsta = 'B'.
         ls_final-wbsta = 'Partially processed'.
-      elseif ls_vbupj-wbsta = 'C'.
+      ELSEIF ls_vbupj-wbsta = 'C'.
         ls_final-wbsta = 'Completely processed'.
-      endif.
+      ENDIF.
 
       ls_final-wmeng = ls_final-kwmeng - lv_wmengm.
       ls_final-rfwrt = ( ls_final-netwr / ls_final-kwmeng ) * ls_final-wmeng.
       lflg_no_dlv = abap_true.
 
 *      CHECK ls_final-wmeng IS NOT INITIAL.
-      append ls_final to gt_final.
+      APPEND ls_final TO gt_final.
 
-    endloop.
+    ENDLOOP.
 
-    if ls_vbup-gbsta = 'C' and
-     ( lv_lfgsa <> 'A' or lv_lfgsa <> 'B' ).
+    IF ls_vbup-gbsta = 'C' AND
+     ( lv_lfgsa <> 'A' OR lv_lfgsa <> 'B' ).
 
-      continue.
-    endif.
+      CONTINUE.
+    ENDIF.
 
-    if lflg_no_dlv is initial.
+    IF lflg_no_dlv IS INITIAL.
 
-      if ls_vbupj-wbsta = 'A'.
+      IF ls_vbupj-wbsta = 'A'.
         ls_final-wbsta = 'Not yet processed'.
-      elseif ls_vbupj-wbsta = 'B'.
+      ELSEIF ls_vbupj-wbsta = 'B'.
         ls_final-wbsta = 'Partially processed'.
-      elseif ls_vbupj-wbsta = 'C'.
+      ELSEIF ls_vbupj-wbsta = 'C'.
         ls_final-wbsta = 'Completely processed'.
-      endif.
+      ENDIF.
 
 
       ls_final-wmeng = ls_final-kwmeng - lv_wmengm.
       ls_final-rfwrt = ( ls_final-netwr / ls_final-kwmeng ) * ls_final-wmeng.
 *      CHECK ls_final-wmeng IS NOT INITIAL.
-      append ls_final to gt_final.
-    endif.
-  endloop.
-endform.                    " MERGE_DATA
+      APPEND ls_final TO gt_final.
+    ENDIF.
+  ENDLOOP.
+ENDFORM.                    " MERGE_DATA
 *&---------------------------------------------------------------------*
 *&      Form  DISPLAY_ALV
 *&---------------------------------------------------------------------*
@@ -485,38 +485,38 @@ endform.                    " MERGE_DATA
 *  -->  p1        text
 *  <--  p2        text
 *----------------------------------------------------------------------*
-form display_alv .
+FORM display_alv .
 
-  data: lr_table   type ref to cl_salv_table.
-  data: lr_functions type ref to cl_salv_functions_list.
-  data: lr_columns type ref to cl_salv_columns.
-
-
-  if s_mail is not initial and sy-batch eq abap_true.
-    perform create_xls_file.
-    perform send_mail.
-  endif.
+  DATA: lr_table   TYPE REF TO cl_salv_table.
+  DATA: lr_functions TYPE REF TO cl_salv_functions_list.
+  DATA: lr_columns TYPE REF TO cl_salv_columns.
 
 
-  try.
+  IF s_mail IS NOT INITIAL AND sy-batch EQ abap_true.
+    PERFORM create_xls_file.
+    PERFORM send_mail.
+  ENDIF.
+
+
+  TRY.
       cl_salv_table=>factory(
-        importing
+        IMPORTING
           r_salv_table = lr_table
-        changing
+        CHANGING
           t_table      = gt_final ).
-    catch cx_salv_msg.                                  "#EC NO_HANDLER
-  endtry.
+    CATCH cx_salv_msg.                                  "#EC NO_HANDLER
+  ENDTRY.
 
   lr_functions = lr_table->get_functions( ).
   lr_functions->set_default( abap_true ).
   lr_functions->set_all( abap_true ).
   lr_columns = lr_table->get_columns( ).
 
-  perform set_field_names using lr_columns.
+  PERFORM set_field_names USING lr_columns.
 
   lr_table->display( ).
 
-endform.                    " DISPLAY_ALV
+ENDFORM.                    " DISPLAY_ALV
 
 *&---------------------------------------------------------------------*
 *&      Form  set_field_names
@@ -525,13 +525,13 @@ endform.                    " DISPLAY_ALV
 *----------------------------------------------------------------------*
 *      -->IR_COLUMNS text
 *----------------------------------------------------------------------*
-form set_field_names  using    ir_columns type ref to cl_salv_columns.
-  data: lr_column type ref to cl_salv_column,
-        lv_str_s type scrtext_s,
-        lv_str_m type  scrtext_m,
-        lv_str_l type scrtext_l.
+FORM set_field_names  USING    ir_columns TYPE REF TO cl_salv_columns.
+  DATA: lr_column TYPE REF TO cl_salv_column,
+        lv_str_s  TYPE scrtext_s,
+        lv_str_m  TYPE  scrtext_m,
+        lv_str_l  TYPE scrtext_l.
 
-  try.
+  TRY.
       lr_column = ir_columns->get_column( 'RTIME' ).
       lv_str_s = 'Req. Time'.
       lv_str_m = 'Required Time'.
@@ -540,8 +540,8 @@ form set_field_names  using    ir_columns type ref to cl_salv_columns.
       lr_column->set_medium_text( lv_str_m ).
       lr_column->set_long_text( lv_str_l ).
       lr_column->set_output_length( 20 ).
-    catch cx_salv_not_found.                            "#EC NO_HANDLER
-  endtry.
+    CATCH cx_salv_not_found.                            "#EC NO_HANDLER
+  ENDTRY.
 
 
 
@@ -592,7 +592,7 @@ form set_field_names  using    ir_columns type ref to cl_salv_columns.
 *    CATCH cx_salv_not_found.                          "#EC NO_HANDLER
 *  ENDTRY.
 
-endform.                    " SET_FIELD_NAMES
+ENDFORM.                    " SET_FIELD_NAMES
 
 
 *&---------------------------------------------------------------------*
@@ -600,19 +600,19 @@ endform.                    " SET_FIELD_NAMES
 *&---------------------------------------------------------------------*
 *       text
 *----------------------------------------------------------------------*
-form create_xls_file.
-  data:
-   xlsx_writer                   type ref to zscn_cl_xlsx_writer.
+FORM create_xls_file.
+  DATA:
+   xlsx_writer                   TYPE REF TO zscn_cl_xlsx_writer.
 
-  constants:
-    color_column type lvc_fname value 'ALV_COLOR_COL'.
+  CONSTANTS:
+    color_column TYPE lvc_fname VALUE 'ALV_COLOR_COL'.
 
-  clear: gv_attachment_length,gt_xlsx_attachment,gt_pdf_attachment.
+  CLEAR: gv_attachment_length,gt_xlsx_attachment,gt_pdf_attachment.
 
   gt_final_xls[] = gt_final[].
 
-  create object xlsx_writer
-    exporting
+  CREATE OBJECT xlsx_writer
+    EXPORTING
       sheet_content = gt_final_xls.
 
   xlsx_writer->add_custom_doc_property(
@@ -641,54 +641,54 @@ form create_xls_file.
   xlsx_writer->build( ).
 
   xlsx_writer->get_file_as_email_attachment(
-      importing
+      IMPORTING
         xlsx_attachment   = gt_xlsx_attachment
         attachment_lenght = gv_attachment_length
     ).
 
 
-endform.                    "create_xls_file
+ENDFORM.                    "create_xls_file
 
 *&---------------------------------------------------------------------*
 *&      Form  send_mail
 *&---------------------------------------------------------------------*
 *       text
 *----------------------------------------------------------------------*
-form send_mail.
+FORM send_mail.
 
-  data:  lo_send_request type ref to cl_bcs value is initial.
-  class cl_bcs definition load.
-  data: lo_document type ref to cl_document_bcs value is initial, "document object
-        i_text type bcsy_text, "Table for body
-        w_text like line of i_text, "work area for message body
-        lo_sender type ref to if_sender_bcs value is initial,
-        lo_recipient type ref to if_recipient_bcs value is initial,
-        lt_att_head type soli_tab,
-        ls_imessage type solisti1,
-        lt_attachment type solix_tab,
-        lv_atta_type type soodk-objtp,
-        l_attsubject type sood-objdes,
-        ls_mail like line of s_mail,
-        lt_imessage type standard table of solisti1,
-        lv_filename type string,
-        lv_text_line type soli,
-        lv_subject type so_obj_des,
-        l_val type char10.
+  DATA:  lo_send_request TYPE REF TO cl_bcs VALUE IS INITIAL.
+  CLASS cl_bcs DEFINITION LOAD.
+  DATA: lo_document   TYPE REF TO cl_document_bcs VALUE IS INITIAL, "document object
+        i_text        TYPE bcsy_text, "Table for body
+        w_text        LIKE LINE OF i_text, "work area for message body
+        lo_sender     TYPE REF TO if_sender_bcs VALUE IS INITIAL,
+        lo_recipient  TYPE REF TO if_recipient_bcs VALUE IS INITIAL,
+        lt_att_head   TYPE soli_tab,
+        ls_imessage   TYPE solisti1,
+        lt_attachment TYPE solix_tab,
+        lv_atta_type  TYPE soodk-objtp,
+        l_attsubject  TYPE sood-objdes,
+        ls_mail       LIKE LINE OF s_mail,
+        lt_imessage   TYPE STANDARD TABLE OF solisti1,
+        lv_filename   TYPE string,
+        lv_text_line  TYPE soli,
+        lv_subject    TYPE so_obj_des,
+        l_val         TYPE char10.
 
 
 
   lo_send_request = cl_bcs=>create_persistent( ).
 * Message body and subject
-  write sy-datum to l_val.
+  WRITE sy-datum TO l_val.
 
-  concatenate 'Your open orders with Bailey Metals on' l_val into lv_subject separated by space.
+  CONCATENATE 'Your open orders with Bailey Metals on' l_val INTO lv_subject SEPARATED BY space.
 *Set body
 
-  ls_imessage-line = text-001.
-  append ls_imessage to lt_imessage.     " body_text is an internal table
-  concatenate text-002 l_val  into ls_imessage-line separated by space.
-  concatenate ls_imessage-line '.' into ls_imessage-line.
-  append ls_imessage to lt_imessage.
+  ls_imessage-line = TEXT-001.
+  APPEND ls_imessage TO lt_imessage.     " body_text is an internal table
+  CONCATENATE TEXT-002 l_val  INTO ls_imessage-line SEPARATED BY space.
+  CONCATENATE ls_imessage-line '.' INTO ls_imessage-line.
+  APPEND ls_imessage TO lt_imessage.
 
   lo_document = cl_document_bcs=>create_document( "create document
   i_type = 'RAW' "Type of document HTM, TXT etc
@@ -697,61 +697,213 @@ form send_mail.
 * Pass the document to send request
   lo_send_request->set_document( lo_document ).
 
-  concatenate 'Open Orders.' 'xlsx' into lv_filename.
+  CONCATENATE 'Open Orders.' 'xlsx' INTO lv_filename.
   lv_atta_type = 'XLS'.
 
-  concatenate '&SO_FILENAME=' lv_filename into lv_text_line.
-  append lv_text_line to lt_att_head.
+  CONCATENATE '&SO_FILENAME=' lv_filename INTO lv_text_line.
+  APPEND lv_text_line TO lt_att_head.
 
-  write 'Open Orders' to l_attsubject.
+  WRITE 'Open Orders' TO l_attsubject.
 *   Create Attachment
-  try.
-    lo_document->add_attachment( exporting
-                                    i_attachment_type = lv_atta_type
-                                    i_attachment_subject = l_attsubject
-                                    i_attachment_size = gv_attachment_length
-                                    i_att_content_hex = gt_xlsx_attachment
-                                    i_attachment_header = lt_att_head ).
+  TRY.
+      lo_document->add_attachment( EXPORTING
+                                      i_attachment_type = lv_atta_type
+                                      i_attachment_subject = l_attsubject
+                                      i_attachment_size = gv_attachment_length
+                                      i_att_content_hex = gt_xlsx_attachment
+                                      i_attachment_header = lt_att_head ).
 
-  endtry.
+  ENDTRY.
 
-  try.
+  TRY.
       lo_sender = cl_sapuser_bcs=>create( sy-uname ). "sender is the logged in user
 * Set sender to send request
       lo_send_request->set_sender(
-      exporting
+      EXPORTING
       i_sender = lo_sender ).
-    catch cx_address_bcs.
+    CATCH cx_address_bcs.
 ****Catch exception here
-  endtry.
+  ENDTRY.
 
 **Set recipient
-  loop at s_mail into ls_mail.
+  LOOP AT s_mail INTO ls_mail.
     lo_recipient = cl_cam_address_bcs=>create_internet_address( ls_mail-low ). "Here Recipient is email input p_email
-    try.
-      lo_send_request->add_recipient(
-          exporting
-          i_recipient = lo_recipient
-          i_express = 'X' ).
+    TRY.
+        lo_send_request->add_recipient(
+            EXPORTING
+            i_recipient = lo_recipient
+            i_express = 'X' ).
 *      CATCH cx_send_req_bcs INTO bcs_exception .
 **Catch exception here
-    endtry.
+    ENDTRY.
 
-  endloop.
-  try.
-    call method lo_send_request->set_send_immediately
-      exporting
-        i_send_immediately = abap_true. "here selection screen input p_send
-  endtry.
-  try.
+  ENDLOOP.
+  TRY.
+      CALL METHOD lo_send_request->set_send_immediately
+        EXPORTING
+          i_send_immediately = abap_true. "here selection screen input p_send
+  ENDTRY.
+  TRY.
 ** Send email
-    lo_send_request->send(
-    exporting
-    i_with_error_screen = 'X' ).
+      lo_send_request->send(
+      EXPORTING
+      i_with_error_screen = 'X' ).
 
-    commit work.
-    if sy-subrc = 0. "mail sent successfully
-      message 'Mail sent successfully' type 'S'.
-    endif.
-  endtry.
-endform.                    "send_mail
+      COMMIT WORK.
+      IF sy-subrc = 0. "mail sent successfully
+        MESSAGE 'Mail sent successfully' TYPE 'S'.
+      ENDIF.
+  ENDTRY.
+ENDFORM.                    "send_mail
+
+*adding
+FORM before_rfc
+   USING
+      p_before_rfc_imp     TYPE spta_t_before_rfc_imp
+   CHANGING
+      p_before_rfc_exp     TYPE spta_t_before_rfc_exp
+      pt_rfcdata           TYPE spta_t_indxtab
+      p_failed_objects     TYPE spta_t_failed_objects
+      p_objects_in_process TYPE spta_t_objects_in_process
+      p_user_param.
+
+  TYPES: BEGIN OF t_rfcdata,
+           BEGIN OF importing,
+             it_vbap       LIKE gt_vbap,
+             it_vbup       LIKE gt_vbup,
+             it_vbak       LIKE gt_vbak,
+             it_vbak       LIKE gt_vbak,
+             it_kna1       LIKE gt_kna1,
+             it_knvp       LIKE gt_knvp,
+             it_makt       LIKE gt_makt,
+             it_mara       LIKE gt_mara,
+             it_vbfaj      LIKE gt_vbfaj,
+             it_likp       LIKE gt_likp,
+             it_vbfa5      LIKE gt_vbfa5,
+             it_vbrk_vbeln LIKE gt_vbrk_vbeln,
+             it_vbfa5      LIKE gt_vbfa5,
+             it_vbfam      LIKE gt_vbfam,
+             it_vbfak      LIKE gt_vbfak,
+           END OF importing,
+           BEGIN OF exporting,
+             et_final TYPE TABLE OF zopen_ord_output,
+           END OF exporting,
+         END OF t_rfcdata.
+
+  DATA:
+    ld_package_size LIKE sy-tabix,
+    lt_vbap         TYPE TABLE OF ty_vbap,
+    lt_task_data    TYPE t_rfcdata.
+
+  DATA: l_counter     TYPE i,
+        l_no_of_items TYPE i VALUE 10000,
+        lt_vbap       TYPE TABLE OF ty_vbap.
+
+
+* Delete list of objects in process
+  CLEAR ld_obj_in_process.
+* Check if there are objects from previously failed tasks left ...
+
+
+  LOOP AT gt_vbap INTO ls_vbap.
+    IF ( l_counter < l_no_of_items AND ls_vbap IS NOT INITIAL ).
+      APPEND ls_vbap TO lt_vbap.
+      DELETE gt_vbap INDEX 1.
+      l_counter = l_counter + 1.
+    ELSE.
+      EXIT.
+    ENDIF.
+  ENDLOOP.
+
+  IF lt_vbap IS NOT INITIAL.
+    lt_task_data-importing-it_vbap = lt_vbap.
+    lt_task_data-importing-it_vbak = gt_vbap.
+    lt_task_data-importing-it_vbup = gt_vbup.
+    lt_task_data-importing-it_kna1 = gt_kna1.
+    lt_task_data-importing-it_knvp = gt_knvp.
+    lt_task_data-importing-it_makt = gt_makt.
+    lt_task_data-importing-it_mara = gt_mara.
+    lt_task_data-importing-it_mara = gt_mara.
+    lt_task_data-importing-it_mara = gt_mara.
+    lt_task_data-importing-it_vbfaj = gt_vbfaj.
+    lt_task_data-importing-it_vbfa5 = gt_vbfa5.
+    lt_task_data-importing-it_vbfam = gt_vbfam.
+    lt_task_data-importing-it_vbfak = gt_vbfak.
+    lt_task_data-importing-it_vbrk_vbeln = gt_vbrk_vbeln.
+
+  ENDIF.
+
+  IF lt_vbap IS INITIAL.
+    CLEAR p_before_rfc_exp-start_rfc.
+    EXIT.
+
+  ENDIF.
+
+  p_before_rfc_exp-start_rfc = 'X'.
+
+
+  CALL FUNCTION 'SPTA_INDX_PACKAGE_ENCODE'
+    EXPORTING
+      data    = lt_task_data
+    IMPORTING
+      indxtab = pt_rfcdata.
+
+
+
+
+ENDFORM.                               "BEFORE_RFC
+
+
+*---------------------------------------------------------------------*
+*       FORM IN_RFC                                                   *
+*---------------------------------------------------------------------*
+*       Callback-Form invoked within the RFC                          *
+*---------------------------------------------------------------------*
+FORM in_rfc
+   USING
+      p_in_rfc_imp  TYPE spta_t_in_rfc_imp
+   CHANGING
+      p_in_rfc_exp  TYPE spta_t_in_rfc_exp
+      p_rfcdata     TYPE spta_t_indxtab.
+
+
+* Unpack RFC input data (that has been packed in the BEFORE_RFC form)
+  CALL FUNCTION 'SPTA_INDX_PACKAGE_DECODE'
+       EXPORTING
+            indxtab = p_rfcdata
+       IMPORTING
+            data    = ld_taskdata.
+
+
+
+
+
+  ENDform.
+
+
+*&---------------------------------------------------------------------*
+*&      Form  SPTA_PARA_PROCESSING
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM spta_para_processing .
+
+
+  CALL FUNCTION 'SPTA_PARA_PROCESS_START_2'
+    EXPORTING
+      server_group             = rfcgroup
+      max_no_of_tasks          = 10
+      before_rfc_callback_form = 'BEFORE_RFC'
+      in_rfc_callback_form     = 'IN_RFC'
+      after_rfc_callback_form  = 'AFTER_RFC'
+      callback_prog            = sy-repid
+    EXCEPTIONS
+      invalid_server_group     = 1
+      no_resources_available   = 2
+      OTHERS                   = 3.
+
+
+ENDFORM.

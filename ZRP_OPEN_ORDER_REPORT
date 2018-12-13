@@ -19,7 +19,18 @@ start-of-selection.
   endif.
 
   perform fetch_data.
+*  adding
+  DESCRIBE TABLE gt_vbap LINES sy-tabix.
+  if sy-tabix > 20000 or sy-batch is NOT INITIAL.
+
   perform merge_data.
+
+  else.
+
+    PERFORM  spta_para_processing.
+
+  endif.
+*  adding
 
   if gt_final is initial.
     message text-003 type 'S' display like 'E'..

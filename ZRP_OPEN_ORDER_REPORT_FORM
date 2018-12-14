@@ -836,7 +836,6 @@ FORM before_rfc
   IF lt_vbap IS INITIAL.
     CLEAR p_before_rfc_exp-start_rfc.
     EXIT.
-
   ENDIF.
 
   p_before_rfc_exp-start_rfc = 'X'.
@@ -847,9 +846,6 @@ FORM before_rfc
       data    = lt_task_data
     IMPORTING
       indxtab = pt_rfcdata.
-
-
-
 
 ENDFORM.                               "BEFORE_RFC
 
@@ -866,21 +862,339 @@ FORM in_rfc
       p_in_rfc_exp  TYPE spta_t_in_rfc_exp
       p_rfcdata     TYPE spta_t_indxtab.
 
+  DATA:
+       ld_taskdata   TYPE t_rfcdata.
+
+  DATA: lt_final      TYPE TABLE OF zopen_ord_output,
+        lt_vbak       TYPE TABLE OF ty_vbak,
+        lt_mara       TYPE TABLE OF ty_mara,
+        lt_knvp       TYPE TABLE OF ty_knvp,
+        lt_kna1       TYPE TABLE OF ty_kna1,
+        lt_vbap       TYPE TABLE OF ty_vbap,
+        lt_makt       TYPE TABLE OF makt,
+        lt_vbfak      TYPE TABLE OF ty_vbfa,
+        lt_vbfaj      TYPE TABLE OF ty_vbfa,
+        lt_vbfa5      TYPE TABLE OF ty_vbfa,
+        lt_vbfam      TYPE TABLE OF ty_vbfa,
+        lt_vbfar      TYPE TABLE OF ty_vbfa,
+        lt_likp       TYPE TABLE OF ty_likp,
+        lt_vapma      TYPE TABLE OF ty_vapma,
+        lt_vbrk_vbeln TYPE TABLE OF ty_vbrk,
+        lt_vbup       TYPE TABLE OF ty_vbup.
+
+  DATA: ls_final        TYPE zopen_ord_output,
+        ls_vbak         TYPE ty_vbak,
+        ls_makt         TYPE makt,
+        ls_kna1         TYPE ty_kna1,
+        lv_jmeng        TYPE rfmng,
+        lv_meng         TYPE rfmng,
+        lv_kmeng        TYPE rfmng,
+        lv_wmengj       TYPE rfmng,
+        lv_wmengk       TYPE rfmng,
+        lv_wmengm       TYPE rfmng,
+        ls_mara         TYPE ty_mara,
+        lflg_no_dlv     TYPE abap_bool,
+        ls_vbfak        TYPE ty_vbfa,
+        ls_vbfam        TYPE ty_vbfa,
+        ls_vbfaj        TYPE ty_vbfa,
+        ls_likp         TYPE ty_likp,
+        ls_vbup         TYPE ty_vbup,
+        ls_vbupj        TYPE ty_vbup,
+        ls_knvp         TYPE ty_knvp,
+        lv_lfgsa        TYPE char1,
+        lflg_so_sts_chk TYPE char1,
+        ls_vbap         TYPE ty_vbap.
+
 
 * Unpack RFC input data (that has been packed in the BEFORE_RFC form)
   CALL FUNCTION 'SPTA_INDX_PACKAGE_DECODE'
-       EXPORTING
-            indxtab = p_rfcdata
-       IMPORTING
-            data    = ld_taskdata.
+    EXPORTING
+      indxtab = p_rfcdata
+    IMPORTING
+      data    = lt_taskdata.
+
+
+* Fill result tables
+* This would include data for result lists, message handler etc.
 
 
 
+  lt_vbap          =       lt_task_data-importing-it_vbap .
+  lt_vbap          =       lt_task_data-importing-it_vbak .
+  lt_vbup          =       lt_task_data-importing-it_vbup .
+  lt_kna1          =       lt_task_data-importing-it_kna1 .
+  lt_knvp          =       lt_task_data-importing-it_knvp .
+  lt_makt          =       lt_task_data-importing-it_makt .
+  lt_mara          =       lt_task_data-importing-it_mara .
+  lt_vbfaj         =       lt_task_data-importing-it_vbfaj.
+  lt_vbfa5         =       lt_task_data-importing-it_vbfa5.
+  lt_vbfam         =       lt_task_data-importing-it_vbfam.
+  lt_vbfak         =       lt_task_data-importing-it_vbfak.
+  lt_vbrk_vbeln    =       lt_task_data-importing-it_vbrk_vbeln.
 
 
-  ENDform.
+  SORT lt_vbak BY vbeln.
+  SORT lt_knvp BY kunnr parvw.
+  DELETE ADJACENT DUPLICATES FROM lt_knvp COMPARING ALL FIELDS.
+  SORT lt_kna1 BY kunnr.
+  DELETE ADJACENT DUPLICATES FROM lt_kna1 COMPARING ALL FIELDS.
+  SORT lt_makt BY matnr.
+  SORT lt_mara BY matnr.
+  SORT lt_vbfaj BY vbelv posnv vbtyp_n.
+  SORT lt_vbfak BY vbelv posnv vbtyp_n.
+  SORT lt_vbfam BY vbelv posnv vbtyp_n.
+  SORT lt_likp BY vbeln.
+  SORT lt_vbrk_vbeln BY vbeln fksto.
+  SORT lt_vbup BY vbeln posnr.
+  SORT lt_vbap BY vbeln posnr.
+
+  LOOP AT lt_vbap INTO ls_vbap.
+
+    CLEAR: ls_vbak, ls_makt, ls_mara, ls_vbfaj, ls_likp, ls_vbup,
+           ls_knvp, ls_kna1, lv_wmengk, ls_vbfak, ls_vbfam, lv_lfgsa,
+           ls_final, lv_wmengm, lv_wmengj,lflg_no_dlv,ls_vbupj,lflg_so_sts_chk.
+
+    MOVE-CORRESPONDING ls_vbap TO ls_final.
+
+    READ TABLE lt_vbup INTO ls_vbup WITH KEY vbeln = ls_final-vbeln
+                                             posnr = ls_final-posnr
+                                             BINARY SEARCH.
+    IF sy-subrc IS INITIAL.
+      MOVE-CORRESPONDING ls_vbup TO ls_final.
+      lv_lfgsa = ls_vbup-lfgsa.
+    ENDIF.
+
+    IF ls_vbup-lfgsa = 'A'.
+      ls_final-lfgsa = 'Not yet delivered'.
+    ELSEIF ls_vbup-lfgsa = 'B'.
+      ls_final-lfgsa = 'Partially delivered'.
+    ELSEIF ls_vbup-lfgsa = 'C'.
+      ls_final-lfgsa = 'Completely delivered'.
+    ENDIF.
+
+    READ TABLE lt_vbak INTO ls_vbak WITH KEY vbeln = ls_vbap-vbeln
+                                    BINARY SEARCH.
+    IF sy-subrc IS NOT INITIAL.
+      CONTINUE.
+    ENDIF.
+    MOVE-CORRESPONDING ls_vbak TO ls_final.
+*    READ TABLE gt_knvp INTO ls_knvp WITH KEY kunnr = ls_vbak-kunnr
+*                                             parvw = 'AG'
+*                                    BINARY SEARCH.
+*    IF sy-subrc IS INITIAL.
+*      ls_final-slifn = ls_knvp-lifnr.
+*    ENDIF.
+
+    READ TABLE lt_kna1 INTO ls_kna1 WITH KEY kunnr = ls_vbak-kunnr BINARY SEARCH.
+    IF sy-subrc IS INITIAL.
+      ls_final-name = ls_kna1-name1.
+    ENDIF.
+
+    READ TABLE lt_knvp INTO ls_knvp WITH KEY kunnr = ls_vbak-kunnr
+                                             parvw = 'RG'
+                                    BINARY SEARCH.
+    IF sy-subrc IS INITIAL.
+      ls_final-kunn2 = ls_knvp-kunn2.
+      READ TABLE lt_kna1 INTO ls_kna1 WITH KEY kunnr = ls_knvp-kunn2 BINARY SEARCH.
+      IF sy-subrc IS INITIAL.
+        ls_final-name1 = ls_kna1-name1.
+      ENDIF.
+    ENDIF.
+
+    READ TABLE lt_makt INTO ls_makt WITH KEY matnr = ls_final-matnr
+                                    BINARY SEARCH.
+    IF sy-subrc IS INITIAL.
+      ls_final-maktx = ls_makt-maktx.
+    ENDIF.
+
+    READ TABLE lt_mara INTO ls_mara WITH KEY matnr = ls_final-matnr
+                                    BINARY SEARCH.
+    IF sy-subrc IS INITIAL.
+      ls_final-matkl = ls_mara-matkl.
+    ENDIF.
+
+    CLEAR: lv_wmengj,lv_wmengm,lv_wmengk.
+
+    LOOP AT  lt_vbfaj INTO ls_vbfaj WHERE vbelv = ls_final-vbeln
+                                     AND posnv = ls_final-posnr.
+*                                     AND vbtyp_n = 'J'.
+
+      MOVE ls_vbfaj-rfmng_flo TO lv_meng.
+      lv_wmengj = lv_wmengj + lv_meng.
+      CLEAR lv_meng.
+
+      ls_final-vbelv = ls_vbfaj-vbeln.
+
+      READ TABLE lt_likp INTO ls_likp WITH KEY vbeln = ls_final-vbelv
+                                     BINARY SEARCH.
+      IF sy-subrc IS INITIAL.
+        ls_final-lfdat = ls_likp-lfdat.
+      ENDIF.
+
+      IF ls_vbak-auart = 'YBFC'.
+        LOOP AT lt_vbfa5 INTO ls_vbfam WHERE vbelv = ls_vbfaj-vbeln
+                                         AND posnv = ls_vbfaj-posnn.
+          READ TABLE lt_vbrk_vbeln TRANSPORTING NO FIELDS
+                                           WITH KEY vbeln = ls_vbfam-vbeln
+                                                    fksto = space
+                                                    BINARY SEARCH.
+
+          CHECK sy-subrc IS INITIAL.
 
 
+          MOVE ls_vbfam-rfmng_flo TO lv_meng.
+          lv_wmengm = lv_wmengm + lv_meng.
+          CLEAR lv_meng.
+
+        ENDLOOP.
+        IF sy-subrc IS NOT INITIAL.
+          LOOP AT lt_vbfa5 INTO ls_vbfam WHERE vbelv = ls_vbap-vbeln
+                                           AND posnv = ls_vbap-posnr.
+            READ TABLE lt_vbrk_vbeln TRANSPORTING NO FIELDS
+                                             WITH KEY vbeln = ls_vbfam-vbeln
+                                                      fksto = space
+                                                      BINARY SEARCH.
+
+            CHECK sy-subrc IS INITIAL.
+
+
+            MOVE ls_vbfam-rfmng_flo TO lv_meng.
+            lv_wmengm = lv_wmengm + lv_meng.
+            CLEAR lv_meng.
+            lflg_so_sts_chk = abap_true.
+          ENDLOOP.
+        ENDIF.
+      ELSE.
+        LOOP AT lt_vbfam INTO ls_vbfam WHERE vbelv = ls_vbfaj-vbeln
+                                         AND posnv = ls_vbfaj-posnn.
+
+          READ TABLE lt_vbrk_vbeln TRANSPORTING NO FIELDS
+                                   WITH KEY vbeln = ls_vbfam-vbeln
+                                            fksto = space
+                                            BINARY SEARCH.
+          CHECK sy-subrc IS INITIAL.
+
+
+          MOVE ls_vbfam-rfmng_flo TO lv_meng.
+          lv_wmengm = lv_wmengm + lv_meng.
+          CLEAR lv_meng.
+        ENDLOOP.
+      ENDIF.
+
+      LOOP AT lt_vbfak INTO ls_vbfak WHERE vbelv = ls_vbfaj-vbeln
+                                       AND posnv = ls_vbfaj-posnn.
+        MOVE ls_vbfak-rfmng_flo TO lv_meng.
+        lv_wmengk = lv_wmengk + lv_meng.
+        CLEAR lv_meng.
+      ENDLOOP.
+      IF lflg_so_sts_chk IS NOT INITIAL.
+        IF ls_vbup-gbsta = 'C' AND
+         ( lv_lfgsa <> 'A' OR lv_lfgsa <> 'B' ).
+          lflg_no_dlv = abap_true.
+          CONTINUE.
+        ENDIF.
+      ELSE.
+        READ TABLE lt_vbup INTO ls_vbupj WITH KEY vbeln = ls_vbfaj-vbeln
+                                                  posnr = ls_vbfaj-posnn
+                                                  BINARY SEARCH.
+        IF ls_vbupj-gbsta = 'C' AND
+         ( ls_vbupj-fksta <> 'A' OR ls_vbupj-fksta <> 'B' ).
+          CONTINUE.
+        ENDIF.
+      ENDIF.
+
+      IF ls_vbupj-wbsta = 'A'.
+        ls_final-wbsta = 'Not yet processed'.
+      ELSEIF ls_vbupj-wbsta = 'B'.
+        ls_final-wbsta = 'Partially processed'.
+      ELSEIF ls_vbupj-wbsta = 'C'.
+        ls_final-wbsta = 'Completely processed'.
+      ENDIF.
+
+      ls_final-wmeng = ls_final-kwmeng - lv_wmengm.
+      ls_final-rfwrt = ( ls_final-netwr / ls_final-kwmeng ) * ls_final-wmeng.
+      lflg_no_dlv = abap_true.
+
+*      CHECK ls_final-wmeng IS NOT INITIAL.
+      APPEND ls_final TO lt_final.
+
+    ENDLOOP.
+
+    IF ls_vbup-gbsta = 'C' AND
+     ( lv_lfgsa <> 'A' OR lv_lfgsa <> 'B' ).
+
+      CONTINUE.
+    ENDIF.
+
+    IF lflg_no_dlv IS INITIAL.
+
+      IF ls_vbupj-wbsta = 'A'.
+        ls_final-wbsta = 'Not yet processed'.
+      ELSEIF ls_vbupj-wbsta = 'B'.
+        ls_final-wbsta = 'Partially processed'.
+      ELSEIF ls_vbupj-wbsta = 'C'.
+        ls_final-wbsta = 'Completely processed'.
+      ENDIF.
+
+
+      ls_final-wmeng = ls_final-kwmeng - lv_wmengm.
+      ls_final-rfwrt = ( ls_final-netwr / ls_final-kwmeng ) * ls_final-wmeng.
+*      CHECK ls_final-wmeng IS NOT INITIAL.
+      APPEND ls_final TO lt_final.
+    ENDIF.
+  ENDLOOP.
+
+  lt_task_data-exporting-et_final = lt_final.
+
+
+* * Repack output data for AFTER_RFC form
+  CALL FUNCTION 'SPTA_INDX_PACKAGE_ENCODE'
+    EXPORTING
+      data    = lt_taskdata
+    IMPORTING
+      indxtab = p_rfcdata.
+
+ENDFORM.
+
+
+*---------------------------------------------------------------------*
+*       FORM AFTER_RFC                                                *
+*---------------------------------------------------------------------*
+*       Callback-Form invoked after RFC                               *
+*---------------------------------------------------------------------*
+FORM after_rfc
+   USING
+      p_rfcdata            TYPE spta_t_indxtab
+      p_rfcsubrc           TYPE sy-subrc
+      p_rfcmsg             TYPE spta_t_rfcmsg
+      p_objects_in_process TYPE spta_t_objects_in_process
+      p_after_rfc_imp      TYPE spta_t_after_rfc_imp
+   CHANGING
+      p_after_rfc_exp      TYPE spta_t_after_rfc_exp
+      p_user_param.
+
+  DATA:
+    ld_obj_in_process LIKE LINE OF p_objects_in_process,
+    ld_tabsize        TYPE sy-tabix,
+    ld_taskdata       TYPE t_rfcdata.
+
+
+  IF p_rfcsubrc IS INITIAL.
+* No RFC error occured
+
+* Unpack RFC output data and add RFC-results to global data,
+* e.g. output list, message handler etc.
+    CALL FUNCTION 'SPTA_INDX_PACKAGE_DECODE'
+      EXPORTING
+        indxtab = p_rfcdata
+      IMPORTING
+        data    = ld_taskdata.
+    APPEND LINES OF ld_taskdata-exporting-workarea
+           TO gt_final.
+    EXIT.
+  ENDIF.
+
+ENDFORM.
 *&---------------------------------------------------------------------*
 *&      Form  SPTA_PARA_PROCESSING
 *&---------------------------------------------------------------------*

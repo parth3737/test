@@ -28,7 +28,7 @@ start-of-selection.
   else.
 
     PERFORM  spta_para_processing.
-
+    sort gt_final by vbeln posnr.
   endif.
 *  adding
 

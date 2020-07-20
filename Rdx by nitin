@@ -1,0 +1,55 @@
+study("RDX Score", overlay=true)
+len = input(title="length_ADX", type=integer, defval=14)
+th = input(title="threshold_ADX", type=integer, defval=14)
+
+TrueRange = max(max(high-low, abs(high-nz(close[1]))), abs(low-nz(close[1])))
+DirectionalMovementPlus = high-nz(high[1]) > nz(low[1])-low ? max(high-nz(high[1]), 0): 0
+DirectionalMovementMinus = nz(low[1])-low > high-nz(high[1]) ? max(nz(low[1])-low, 0): 0
+
+SmoothedTrueRange = nz(SmoothedTrueRange[1]) - (nz(SmoothedTrueRange[1])/len) + TrueRange
+SmoothedDirectionalMovementPlus = nz(SmoothedDirectionalMovementPlus[1]) - (nz(SmoothedDirectionalMovementPlus[1])/len) + DirectionalMovementPlus
+SmoothedDirectionalMovementMinus = nz(SmoothedDirectionalMovementMinus[1]) - (nz(SmoothedDirectionalMovementMinus[1])/len) + DirectionalMovementMinus
+
+DIPlus = SmoothedDirectionalMovementPlus / SmoothedTrueRange * 100
+DIMinus = SmoothedDirectionalMovementMinus / SmoothedTrueRange * 100
+DX = abs(DIPlus-DIMinus) / (DIPlus+DIMinus)*100
+ADX = sma(DX, len)
+
+
+length_RSI = input(14 )
+priceRSI = close
+vrsi = rsi(priceRSI, length_RSI)
+
+m5 = ADX[1]<ADX and vrsi<30
+plotshape(m5, title="SCORE -5", text="-5", textcolor=white, style=shape.labeldown, location=location.abovebar, color=red, transp=0, size=size.tiny)
+
+m4 = (ADX[1]>ADX and vrsi<30) or (ADX[1]<ADX and vrsi<35 and vrsi>30)
+plotshape(m4, title="SCORE -4", text="-4", textcolor=white, style=shape.labeldown, location=location.abovebar, color=red, transp=0, size=size.tiny)
+
+m3 = (ADX[1]>ADX and vrsi<35 and vrsi>30) or (ADX[1]<ADX and vrsi<40 and vrsi>35)
+plotshape(m3, title="SCORE -3", text="-3", textcolor=white, style=shape.labeldown, location=location.abovebar, color=red, transp=0, size=size.tiny)
+
+m2 = (ADX[1]>ADX and vrsi<40 and vrsi>35) or (ADX[1]<ADX and vrsi<45 and vrsi>40)
+plotshape(m2, title="SCORE -2", text="-2", textcolor=white, style=shape.labeldown, location=location.abovebar, color=red, transp=0, size=size.tiny)
+
+m1 = ADX[1]>ADX and vrsi<45 and vrsi>40
+plotshape(m1, title="SCORE -1", text="-1", textcolor=white, style=shape.labeldown, location=location.abovebar, color=red, transp=0, size=size.tiny)
+
+m0 = vrsi<55 and vrsi>45
+//plotshape(m0, title="QQE short", text="0", textcolor=black, style=shape.labeldown, location=location.abovebar, color=yellow, transp=0, size=size.tiny)
+plotshape(m0, title="QQE long", text="0", textcolor=black, style=shape.labelup, location=location.belowbar, color=yellow, transp=0, size=size.tiny)
+
+p1 = ADX[1]>ADX and vrsi>55 and vrsi<60
+plotshape(p1, title="SCORE 1", text="1", textcolor=white, style=shape.labelup, location=location.belowbar, color=green, transp=0, size=size.tiny)
+
+p2 = (ADX[1]>ADX and vrsi>60 and vrsi<65) or (ADX[1]<ADX and vrsi>55 and vrsi<60)
+plotshape(p2, title="SCORE 2", text="2", textcolor=white, style=shape.labelup, location=location.belowbar, color=green, transp=0, size=size.tiny)
+
+p3 = (ADX[1]>ADX and vrsi>65 and vrsi<70) or (ADX[1]<ADX and vrsi>60 and vrsi<65)
+plotshape(p3, title="SCORE 3", text="3", textcolor=white, style=shape.labelup, location=location.belowbar, color=green, transp=0, size=size.tiny)
+
+p4 = (ADX[1]>ADX and vrsi>70) or (ADX[1]<ADX and vrsi>65 and vrsi<70)
+plotshape(p4, title="SCORE 4", text="4", textcolor=white, style=shape.labelup, location=location.belowbar, color=green, transp=0, size=size.tiny)
+
+p5 = ADX[1]<ADX and vrsi>70
+plotshape(p5, title="SCORE 5", text="5", textcolor=white, style=shape.labelup, location=location.belowbar, color=green, transp=0, size=size.tiny)

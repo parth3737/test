@@ -1,0 +1,24 @@
+// © TheProfessorDev
+//@version=4
+
+study("Strategy by itrade(DJ), Coded by Prof. D", overlay=true)
+
+mult = input(type=input.float, defval=3)
+len = input(type=input.integer, defval=10)
+[superTrend, dir] = supertrend(mult, len)
+
+// TRADE CONDITIONS
+
+Long = crossover(ema(close,10),ema(close,20)) and rsi(close,14) > 60 and dir == -1 and volume > sma(volume,20)
+Short = crossunder(ema(close,10),ema(close,20)) and rsi(close,14) < 40 and dir == 1 and volume > sma(volume,20)
+
+// PLOT
+
+plotshape(Long, title="long", text="Long", textcolor=color.white, style=shape.labelup, location=location.belowbar, color=color.green, transp=0, size=size.tiny)
+plotshape(Short, title="short", text="Short", textcolor=color.white, style=shape.labeldown, location=location.abovebar, color=color.red, transp=0, size=size.tiny)
+plot(ema(low,10), title="EMA", color=color.white, linewidth=1)
+
+// ALERTS
+
+alertcondition(Long, title="Long", message="Long")
+alertcondition(Short, title="Short", message="Short")

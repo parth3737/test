@@ -1,0 +1,76 @@
+// © NioDiehard+TheProfessorDev
+//Concept= itrade191(Twitter) 
+ 
+//@version=4
+strategy("Strategy SuperTrend_RSI_EMA_CROSSOVER",shorttitle = "Strategy SuperTrend_RSI_EMA_CROSSOVER",format=format.inherit,calc_on_order_fills=false,overlay = true, calc_on_every_tick=false, pyramiding = 0, default_qty_type = strategy.percent_of_equity, default_qty_value = 100,commission_type = strategy.commission.percent, commission_value = 0.03)
+
+// Time limiting
+// set up where we want to run from
+
+mult     = input(type=input.float,   defval=3,  title="Factor"    )
+len      = input(type=input.integer, defval=10, title="ATR Period")
+fastema  = input(type=input.integer, defval=10, title="Fast EMA")
+slowema  = input(type=input.integer, defval=20, title="Slow EMA")
+UpperRSI = input(type=input.integer, defval=60, title="Bullish RSI")
+LowerRSI = input(type=input.integer, defval=40, title="Bearish RSI")
+
+sperater_one    = input(type=input.string, title="==================================================",defval="")
+useTimeLimit    = input(defval = true, type = input.bool,    title = "Use Start Time Limiter?")
+sperater_two    = input(type=input.string, title="==================================================",defval="")
+startYear       = input(defval = 2020, title = "Start From Year",   type = input.integer, minval = 0, step = 1)
+startMonth      = input(defval = 01,   title = "Start From Month",  type = input.integer, minval = 1,step = 1)
+startDay        = input(defval = 01,   title = "Start From Day",    type = input.integer, minval = 0,step = 1)
+startHour       = input(defval = 09,   title = "Start From Hour",   type = input.integer, minval = 0,step = 1)
+startMinute     = input(defval = 15,   title = "Start From Minute", type = input.integer, minval = 0,step = 5)
+stopYear        = input(defval = 2020, title = "Stop  to Year",     type = input.integer, minval = 0, step = 1)
+stopMonth       = input(defval = 12,   title = "Stop  to Month",    type = input.integer, minval = 0,step = 1)
+stopDay         = input(defval = 11,   title = "Stop  to Day",      type = input.integer, minval = 0,step = 1)
+stopHour        = input(defval = 15,   title = "Stop  to Hour",     type = input.integer, minval = 0,step = 1)
+stopMinute      = input(defval = 15,   title = "Stop  to Minute",   type = input.integer, minval = 0,step = 5)
+
+// TRADE CONDITIONS
+
+[superTrend, dir] = supertrend(mult, len)
+rsi = rsi(close,14)
+myvwap = vwap
+
+Long  = crossover(ema(close,fastema),ema(close,slowema))  and close > superTrend and rsi > UpperRSI and  volume > sma(volume,20) and close > myvwap
+Short = crossunder(ema(close,fastema),ema(close,slowema)) and close < superTrend and rsi < LowerRSI and  volume > sma(volume,20) and close < myvwap
+
+closeLong  = crossunder(ema(close,fastema),ema(close,slowema)) or close < superTrend and Long == true
+closeShort = crossover(ema(close,fastema),ema(close,slowema))  or close > superTrend and Short == true
+
+if closeLong == true
+    Long := false
+if closeShort == true
+    Short := false
+   
+
+// === TIME LIMITER CHECKING FUNCTION ===
+startTimeOk() =>
+// get our input time together
+    inputTime   = timestamp(syminfo.timezone, startYear, startMonth, startDay, startHour, startMinute)
+    limitTime   = timestamp(syminfo.timezone, stopYear, stopMonth, stopDay, stopHour, stopMinute)
+// check the current time is greater than the input time and assign true or false
+    timeOk      = time > inputTime and time <= limitTime ? true : false
+// last line is the return value, we want the strategy to execute if..
+    r = (useTimeLimit and timeOk) or not useTimeLimit
+   
+// wrap our strategy execution in an if statement which calls the time checking function to validate entry
+if (startTimeOk())
+    strategy.close( id='LONG', when = closeLong )
+    strategy.close( id='SHORT',when = closeShort)
+
+    strategy.entry(id="LONG",  long=strategy.long,  when = Long)
+    strategy.entry(id='SHORT', long=strategy.short, when = Short)
+
+// PLOT
+plot(ema(close,fastema), title="FastEMA", color=color.blue, linewidth=2)
+plot(ema(close,slowema), title="SlowEMA", color=color.red, linewidth=2)
+plot(superTrend, title="SuperTrend", color=dir > 0? color.red:color.green, linewidth=1)
+
+// ALERTS
+alertcondition(Long, title="Long", message="Long")
+alertcondition(Short, title="Short", message="Short")
+alertcondition(closeLong, title="Close Long", message="Close Long" )
+alertcondition(closeShort, title="Close Short", message="Close Short")

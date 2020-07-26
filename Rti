@@ -1,0 +1,23 @@
+// © TheProfessorDev
+//@version=4
+
+study(title="Relative Trend Index", shorttitle="Relative Trend Index", resolution="")
+
+
+emaplot = input (true, title="Show EMA on chart")
+ema_st = input(13, minval=1, title="Short Term Length")
+ema_lt = input(50, minval=1, title="Long Term Length")
+src = close
+out_st = ema(src, ema_st)
+out_lt = ema(src, ema_lt)
+out = (out_st/out_lt)
+up = out > out[1] and (close>ema(high,50))
+down = out < out[1] and (close<ema(low,50))
+up_pull = out < out[1] and (close>ema(high,50))
+down_pull = out > out[1] and (close<ema(low,50))
+
+mycolor = up ? color.green : down ? color.red : down_pull ? color.yellow : up_pull ? color.white : color.blue
+plot(out and emaplot ? out :na, title="EMA", color=mycolor, linewidth=5)
+
+ribm=input(false, title="Ribbon Mode")
+bgcolor(ribm?mycolor:na, transp=30)

@@ -1,0 +1,20 @@
+//@version=4
+ 
+study("High-Low Turtle Strategy", overlay=true)
+ 
+// Inputs
+hlen = input(20, "High Lookback Length")
+llen = input(20, "Low Lookback Length")
+ 
+// Period High/Low/Mid
+ 
+h = highest(high, hlen)
+l = lowest(low, llen)
+m = (h + l) / 2
+ 
+// Plots
+ 
+plot(h, "Period High", linewidth=2, color=color.blue)
+plot(l, "Period Low", linewidth=2, color=color.red)
+plot(m, "Period Mid", linewidth=2, color=color.white)
+ 

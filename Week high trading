@@ -1,0 +1,26 @@
+study(title="Highs and Lows", shorttitle="Highs and Lows", overlay=true)
+ 
+ 
+CW_High = security(tickerid, 'W', high)
+CW_Low = security(tickerid, 'W', low)
+ 
+plot(isintraday ? CW_High : na, title="Current. Week's High",style=circles, color=red,linewidth=2)
+plot(isintraday ? CW_Low : na, title="Current Week's Low",style=circles, color=red,linewidth=2)  
+ 
+W_High = security(tickerid, 'W', high[1])
+W_Low = security(tickerid, 'W', low[1])
+ 
+plot(isintraday ? W_High : na, title="Pre. Week's High",style=circles, color=orange,linewidth=2)
+plot(isintraday ? W_Low : na, title="Pre. Week's Low",style=circles, color=orange,linewidth=2)  
+ 
+D2_High = security(tickerid, 'D', highest(high,2)[1])
+D2_Low = security(tickerid, 'D', lowest(low,2)[1])
+ 
+plot(isintraday ? D2_High : na, title="Pre. 2 Days' High",style=circles, color=yellow,linewidth=1)
+plot(isintraday ? D2_Low : na, title="Pre. 2 Days' Low",style=circles, color=yellow,linewidth=1)
+ 
+D_High = security(tickerid, 'D', high[1])
+D_Low = security(tickerid, 'D', low[1])
+ 
+plot(isintraday ? D_High : na, title="Pre. Day's High",style=circles, color=white,linewidth=1)
+plot(isintraday ? D_Low : na, title="Pre. Day's Low",style=circles, color=white,linewidth=1)
